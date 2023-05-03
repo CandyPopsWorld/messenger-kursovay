@@ -15,6 +15,7 @@ namespace messenger
         [STAThread]
         static void Main()
         {
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             if (ConfigurationManager.AppSettings["IsRegistered"] == "true")

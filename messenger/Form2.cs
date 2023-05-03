@@ -13,6 +13,7 @@ namespace messenger
 {
     public partial class Form2 : Form
     {
+        string userId = ConfigurationManager.AppSettings["UserId"];
         public Form2()
         {
             InitializeComponent();
@@ -22,8 +23,14 @@ namespace messenger
         {
             Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
             config.AppSettings.Settings["IsRegistered"].Value = "false";
+            config.AppSettings.Settings["UserId"].Value = "";
             config.Save(ConfigurationSaveMode.Modified);
             Application.Restart();
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show(userId);
         }
     }
 }

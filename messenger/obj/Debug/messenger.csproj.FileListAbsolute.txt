@@ -49,3 +49,17 @@ C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\System.ValueTuple.xml
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\obj\Debug\messenger.csproj.CopyComplete
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\obj\Debug\messenger.Form2.resources
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\Microsoft.Identity.Client.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\Microsoft.Identity.Client.xml
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\Microsoft.IdentityModel.Abstractions.xml
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\BouncyCastle.Cryptography.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MailKit.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MimeKit.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\BouncyCastle.Cryptography.xml
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MailKit.pdb
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MailKit.xml
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MailKit.dll.config
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MimeKit.pdb
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MimeKit.xml
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MimeKit.dll.config
