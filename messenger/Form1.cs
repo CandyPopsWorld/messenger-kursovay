@@ -37,12 +37,17 @@ namespace messenger
 
         private void button2_Click(object sender, EventArgs e)
         {
+            OpenPhotoAndAddPhotoToPictureBox(pictureBox1);
+        }
+
+        public static void OpenPhotoAndAddPhotoToPictureBox(PictureBox pictureBox)
+        {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Image files (*.jpg, *.jpeg, *.png) | *.jpg; *.jpeg; *.png";
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                pictureBox1.Image = Image.FromFile(openFileDialog.FileName);
+                pictureBox.Image = Image.FromFile(openFileDialog.FileName);
             }
         }
 
@@ -67,7 +72,7 @@ namespace messenger
             return true;
         }
 
-        public bool ValidatePassword(string password)
+        public static bool ValidatePassword(string password)
         {
             // Проверяем длину пароля
             if (password.Length < 8 || password.Length > 20)
@@ -110,7 +115,7 @@ namespace messenger
             return true;
         }
 
-        public bool ValidateEmail(string email)
+        public static bool ValidateEmail(string email)
         {
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -126,6 +131,15 @@ namespace messenger
             {
                 return false;
             }
+        }
+
+        public static bool ValidateAge(int age)
+        {
+            if(age >= 0 && age <= 150)
+            {
+                return true;
+            }
+            return false;
         }
 
         /*public bool TestConnection()
@@ -196,7 +210,7 @@ namespace messenger
                 using (var cmd = new NpgsqlCommand())
                 {
                     cmd.Connection = conn;
-                    cmd.CommandText = "INSERT INTO users (username, password, email, age, photo, unique_id) VALUES (@username, @password, @email, @age, @photo, @unique_id)";
+                    cmd.CommandText = "INSERT INTO users (username, password, email, age, photo, unique_id, registration_date) VALUES (@username, @password, @email, @age, @photo, @unique_id, NOW())";
                     cmd.Parameters.AddWithValue("username", login);
                     cmd.Parameters.AddWithValue("password", password);
                     cmd.Parameters.AddWithValue("email", email);
@@ -216,7 +230,7 @@ namespace messenger
             MessageBox.Show("Registration successful!");
             Application.Restart();
         }
-        private byte[] GetImageBytesFromPictureBox(PictureBox pictureBox)
+        public static byte[] GetImageBytesFromPictureBox(PictureBox pictureBox)
         {
             if (pictureBox.Image == null) return null;
 
@@ -284,7 +298,7 @@ namespace messenger
 
             if (!ValidatePassword(password))
             {
-                MessageBox.Show("Пароль должен содержать от 8 до 20 символов");
+                MessageBox.Show("Пароль должен содержать от 8 до 20 символов. Необходимо использовать: латиниские буквы(хотя бы одну в верхнем и нижнем регистре), хотя бы 1 цифру, спец.символ");
                 return;
             }
 

@@ -63,3 +63,7 @@ C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MimeKit.pdb
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MimeKit.xml
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\MimeKit.dll.config
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\EntityFramework.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\EntityFramework.xml
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\EntityFramework.SqlServer.xml
