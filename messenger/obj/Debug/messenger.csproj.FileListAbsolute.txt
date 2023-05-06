@@ -67,3 +67,5 @@ C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\EntityFramework.SqlServer.dll
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\EntityFramework.xml
 C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Pops\Desktop\MESSENGER-KURSOVAY\MESSENGER\messenger\messenger\bin\Debug\Newtonsoft.Json.xml

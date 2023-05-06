@@ -31,13 +31,14 @@
             this.button1 = new System.Windows.Forms.Button();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
-            this.panel8 = new System.Windows.Forms.Panel();
-            this.label21 = new System.Windows.Forms.Label();
-            this.label19 = new System.Windows.Forms.Label();
-            this.panel7 = new System.Windows.Forms.Panel();
-            this.label20 = new System.Windows.Forms.Label();
-            this.label16 = new System.Windows.Forms.Label();
+            this.panel11 = new System.Windows.Forms.Panel();
+            this.panel10 = new System.Windows.Forms.Panel();
+            this.panel4 = new System.Windows.Forms.Panel();
+            this.panel5 = new System.Windows.Forms.Panel();
+            this.panel2 = new System.Windows.Forms.Panel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.label10 = new System.Windows.Forms.Label();
+            this.panel3 = new System.Windows.Forms.Panel();
             this.label24 = new System.Windows.Forms.Label();
             this.label23 = new System.Windows.Forms.Label();
             this.label22 = new System.Windows.Forms.Label();
@@ -71,16 +72,10 @@
             this.label32 = new System.Windows.Forms.Label();
             this.button6 = new System.Windows.Forms.Button();
             this.label26 = new System.Windows.Forms.Label();
-            this.panel10 = new System.Windows.Forms.Panel();
-            this.panel11 = new System.Windows.Forms.Panel();
-            this.panel3 = new System.Windows.Forms.Panel();
-            this.label10 = new System.Windows.Forms.Label();
-            this.panel2 = new System.Windows.Forms.Panel();
-            this.panel4 = new System.Windows.Forms.Panel();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
-            this.panel8.SuspendLayout();
-            this.panel7.SuspendLayout();
+            this.panel10.SuspendLayout();
+            this.panel4.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.tabPage2.SuspendLayout();
@@ -90,8 +85,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox7)).BeginInit();
             this.tabPage5.SuspendLayout();
-            this.panel10.SuspendLayout();
-            this.panel4.SuspendLayout();
             this.SuspendLayout();
             // 
             // button1
@@ -133,69 +126,50 @@
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "ЧАТЫ";
             // 
-            // panel8
+            // panel11
             // 
-            this.panel8.BackColor = System.Drawing.SystemColors.ActiveBorder;
-            this.panel8.Controls.Add(this.label21);
-            this.panel8.Controls.Add(this.label19);
-            this.panel8.Location = new System.Drawing.Point(12, 98);
-            this.panel8.Name = "panel8";
-            this.panel8.Size = new System.Drawing.Size(317, 71);
-            this.panel8.TabIndex = 24;
+            this.panel11.Location = new System.Drawing.Point(275, 375);
+            this.panel11.Name = "panel11";
+            this.panel11.Size = new System.Drawing.Size(629, 100);
+            this.panel11.TabIndex = 26;
             // 
-            // label21
+            // panel10
             // 
-            this.label21.AutoSize = true;
-            this.label21.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label21.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.label21.Location = new System.Drawing.Point(270, 50);
-            this.label21.Name = "label21";
-            this.label21.Size = new System.Drawing.Size(44, 17);
-            this.label21.TabIndex = 24;
-            this.label21.Text = "17:37";
+            this.panel10.Controls.Add(this.panel4);
+            this.panel10.Controls.Add(this.panel2);
+            this.panel10.Location = new System.Drawing.Point(272, 6);
+            this.panel10.Name = "panel10";
+            this.panel10.Size = new System.Drawing.Size(632, 363);
+            this.panel10.TabIndex = 25;
             // 
-            // label19
+            // panel4
             // 
-            this.label19.AutoSize = true;
-            this.label19.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label19.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.label19.Location = new System.Drawing.Point(14, 30);
-            this.label19.Name = "label19";
-            this.label19.Size = new System.Drawing.Size(126, 17);
-            this.label19.TabIndex = 22;
-            this.label19.Text = "Привет как дела?";
+            this.panel4.AutoScroll = true;
+            this.panel4.BackColor = System.Drawing.Color.Gainsboro;
+            this.panel4.Controls.Add(this.panel5);
+            this.panel4.Location = new System.Drawing.Point(9, 106);
+            this.panel4.Name = "panel4";
+            this.panel4.Size = new System.Drawing.Size(614, 254);
+            this.panel4.TabIndex = 26;
             // 
-            // panel7
+            // panel5
             // 
-            this.panel7.BackColor = System.Drawing.Color.LightSeaGreen;
-            this.panel7.Controls.Add(this.label20);
-            this.panel7.Controls.Add(this.label16);
-            this.panel7.Location = new System.Drawing.Point(12, 13);
-            this.panel7.Name = "panel7";
-            this.panel7.Size = new System.Drawing.Size(317, 71);
-            this.panel7.TabIndex = 23;
+            this.panel5.AutoScroll = true;
+            this.panel5.BackColor = System.Drawing.Color.Gainsboro;
+            this.panel5.Location = new System.Drawing.Point(15, 12);
+            this.panel5.Name = "panel5";
+            this.panel5.Size = new System.Drawing.Size(585, 239);
+            this.panel5.TabIndex = 27;
+            this.panel5.MouseEnter += new System.EventHandler(this.panel5_MouseEnter);
+            this.panel5.MouseLeave += new System.EventHandler(this.panel5_MouseLeave);
             // 
-            // label20
+            // panel2
             // 
-            this.label20.AutoSize = true;
-            this.label20.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label20.ForeColor = System.Drawing.SystemColors.ControlLight;
-            this.label20.Location = new System.Drawing.Point(258, 43);
-            this.label20.Name = "label20";
-            this.label20.Size = new System.Drawing.Size(44, 17);
-            this.label20.TabIndex = 23;
-            this.label20.Text = "17:35";
-            // 
-            // label16
-            // 
-            this.label16.AutoSize = true;
-            this.label16.Font = new System.Drawing.Font("Microsoft Sans Serif", 10.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label16.ForeColor = System.Drawing.SystemColors.ControlLight;
-            this.label16.Location = new System.Drawing.Point(14, 30);
-            this.label16.Name = "label16";
-            this.label16.Size = new System.Drawing.Size(126, 17);
-            this.label16.TabIndex = 22;
-            this.label16.Text = "Привет как дела?";
+            this.panel2.BackColor = System.Drawing.Color.Gainsboro;
+            this.panel2.Location = new System.Drawing.Point(9, 12);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(614, 84);
+            this.panel2.TabIndex = 25;
             // 
             // panel1
             // 
@@ -213,6 +187,24 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(260, 479);
             this.panel1.TabIndex = 0;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(79, 177);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(73, 13);
+            this.label10.TabIndex = 31;
+            this.label10.Text = "ВАШИ ЧАТЫ";
+            // 
+            // panel3
+            // 
+            this.panel3.AutoScroll = true;
+            this.panel3.BackColor = System.Drawing.Color.Silver;
+            this.panel3.Location = new System.Drawing.Point(0, 193);
+            this.panel3.Name = "panel3";
+            this.panel3.Size = new System.Drawing.Size(257, 248);
+            this.panel3.TabIndex = 30;
             // 
             // label24
             // 
@@ -553,59 +545,6 @@
             this.label26.TabIndex = 1;
             this.label26.Text = "НАСТРОЙКИ";
             // 
-            // panel10
-            // 
-            this.panel10.Controls.Add(this.panel4);
-            this.panel10.Controls.Add(this.panel2);
-            this.panel10.Location = new System.Drawing.Point(272, 6);
-            this.panel10.Name = "panel10";
-            this.panel10.Size = new System.Drawing.Size(632, 363);
-            this.panel10.TabIndex = 25;
-            // 
-            // panel11
-            // 
-            this.panel11.Location = new System.Drawing.Point(275, 375);
-            this.panel11.Name = "panel11";
-            this.panel11.Size = new System.Drawing.Size(629, 100);
-            this.panel11.TabIndex = 26;
-            // 
-            // panel3
-            // 
-            this.panel3.AutoScroll = true;
-            this.panel3.BackColor = System.Drawing.Color.Silver;
-            this.panel3.Location = new System.Drawing.Point(0, 193);
-            this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(257, 248);
-            this.panel3.TabIndex = 30;
-            // 
-            // label10
-            // 
-            this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(79, 177);
-            this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(73, 13);
-            this.label10.TabIndex = 31;
-            this.label10.Text = "ВАШИ ЧАТЫ";
-            // 
-            // panel2
-            // 
-            this.panel2.BackColor = System.Drawing.Color.Gainsboro;
-            this.panel2.Location = new System.Drawing.Point(9, 12);
-            this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(614, 84);
-            this.panel2.TabIndex = 25;
-            // 
-            // panel4
-            // 
-            this.panel4.AutoScroll = true;
-            this.panel4.BackColor = System.Drawing.Color.Gainsboro;
-            this.panel4.Controls.Add(this.panel7);
-            this.panel4.Controls.Add(this.panel8);
-            this.panel4.Location = new System.Drawing.Point(9, 106);
-            this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(614, 254);
-            this.panel4.TabIndex = 26;
-            // 
             // Form2
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -616,10 +555,8 @@
             this.Text = "Form2";
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
-            this.panel8.ResumeLayout(false);
-            this.panel8.PerformLayout();
-            this.panel7.ResumeLayout(false);
-            this.panel7.PerformLayout();
+            this.panel10.ResumeLayout(false);
+            this.panel4.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
@@ -634,8 +571,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox7)).EndInit();
             this.tabPage5.ResumeLayout(false);
             this.tabPage5.PerformLayout();
-            this.panel10.ResumeLayout(false);
-            this.panel4.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -651,12 +586,6 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Panel panel8;
-        private System.Windows.Forms.Label label19;
-        private System.Windows.Forms.Panel panel7;
-        private System.Windows.Forms.Label label16;
-        private System.Windows.Forms.Label label21;
-        private System.Windows.Forms.Label label20;
         private System.Windows.Forms.Label label23;
         private System.Windows.Forms.Label label22;
         private System.Windows.Forms.Label label24;
@@ -691,5 +620,6 @@
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Panel panel4;
         private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Panel panel5;
     }
 }

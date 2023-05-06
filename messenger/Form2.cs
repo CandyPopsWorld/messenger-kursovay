@@ -22,6 +22,9 @@ using System.Runtime.Remoting.Messaging;
 using MimeKit;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 using System.Xml;
+using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace messenger
 {
@@ -31,6 +34,12 @@ namespace messenger
         static string connectionString = "Server=localhost;Port=5432;Database=messenger;User Id=postgres;Password=regular123;";
         public static User user; // объявляем переменную класса User
         public static Chats chats; // объявляем переменную класса Chats
+        // Создаем таймер и настраиваем его
+        Timer timer = new Timer();
+
+        Message[] globalMessages;
+
+        public string currentOpenChatId = "";
         public Form2()
         {
             InitializeComponent();
@@ -39,6 +48,80 @@ namespace messenger
             user.LoadFromDatabase(userId); // вызываем метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
             DisplayUserData(user); // отображаем полученные данные на форме
             LoadAllChatsUser();
+        }
+
+        public void ListenForNewMessages(string chatId)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                using (NpgsqlCommand cmd = new NpgsqlCommand())
+                {
+                    cmd.Connection = conn;
+                    cmd.CommandText = "LISTEN new_message";
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                using (NpgsqlCommand cmd = new NpgsqlCommand())
+                {
+                    cmd.Connection = conn;
+                    cmd.CommandText = "CREATE OR REPLACE FUNCTION notify_new_message() RETURNS TRIGGER AS $$ BEGIN PERFORM pg_notify('new_message', NEW.chat_unique_id::text); RETURN NEW; END; $$ LANGUAGE plpgsql;";
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                using (NpgsqlCommand cmd = new NpgsqlCommand())
+                {
+                    cmd.Connection = conn;
+                    cmd.CommandText = $"DROP TRIGGER IF EXISTS new_message_trigger ON chats_messages; CREATE TRIGGER new_message_trigger AFTER UPDATE OF messages ON chats_messages FOR EACH ROW WHEN (OLD.messages IS DISTINCT FROM NEW.messages) EXECUTE FUNCTION notify_new_message();";
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            using (NpgsqlConnection notificationConn = new NpgsqlConnection(connectionString))
+            {
+                notificationConn.Open();
+                notificationConn.Notification += (o, e) =>
+                {
+                    if (e.Payload == chatId)
+                    {
+                        // New message received for the specified chatId.
+                        using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+                        {
+                            conn.Open();
+                            using (NpgsqlCommand cmd = new NpgsqlCommand())
+                            {
+                                cmd.Connection = conn;
+                                cmd.CommandText = $"SELECT messages FROM chats_messages WHERE chat_unique_id = '{chatId}'";
+                                string messagesJson = (string)cmd.ExecuteScalar();
+                                Message[] messages = JsonConvert.DeserializeObject<Message[]>(messagesJson);
+
+                                foreach (Message message in messages)
+                                {
+                                    CreateWidgetMessage(message);
+                                }
+                            }
+                        }
+                    }
+                };
+                using (NpgsqlCommand cmd = new NpgsqlCommand())
+                {
+                    cmd.Connection = notificationConn;
+                    cmd.CommandText = "LISTEN new_message";
+                    cmd.ExecuteNonQuery();
+                }
+                while (true)
+                {
+                    notificationConn.Wait(5000);
+                }
+            }
         }
 
         public void LoadAllChatsUser()
@@ -87,17 +170,35 @@ namespace messenger
             usernameLabel.Font = new Font("Arial", 12, FontStyle.Bold);
             usernameLabel.Location = new Point(50, 10);
 
-            chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser);
-            usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser);
-            photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser);
+            chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);
+            usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);
+            photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);
 
             chatPanel.Controls.Add(photoBox);
             chatPanel.Controls.Add(usernameLabel);
             panel3.Controls.Add(chatPanel);
         }
 
-        public void ClickToChatWidget(User additionalUser)
+        public void ClickToChatWidget(User additionalUser, string chatId)
         {
+            if(currentOpenChatId == chatId)
+            {
+                MessageBox.Show("Данный чат уже открыт!");
+                return;
+            }
+
+
+            currentOpenChatId = chatId;
+
+            panel5.Controls.Clear();
+
+            Message[] messages = GetAllMessages(chatId);
+            globalMessages = messages;
+            foreach (Message message in messages)
+            {
+                CreateWidgetMessage(message);
+            }
+
             //ПОВТОРЕНИЕ КОДА(НАЧАЛО)
             string username = additionalUser.Username;
             int age = additionalUser.Age;
@@ -129,9 +230,9 @@ namespace messenger
             usernameLabel.Font = new Font("Arial", 12, FontStyle.Bold);
             usernameLabel.Location = new Point(50, 10);
 
-            chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser);
-            usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser);
-            photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser);
+            chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
+            usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
+            photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
 
             chatPanel.Controls.Add(photoBox);
             chatPanel.Controls.Add(usernameLabel);
@@ -148,7 +249,7 @@ namespace messenger
 
             System.Windows.Forms.Button write_user = new System.Windows.Forms.Button();
             write_user.Text = "Отправить";
-            write_user.Click += (sender, e) => SendMessageToUser(messageTextBox);
+            write_user.Click += (sender, e) => SendMessageToUser(messageTextBox, unique_id, chatId);
             write_user.Width = 142;
             write_user.Height = 54;
             write_user.Location = new Point(480, 0);
@@ -159,13 +260,158 @@ namespace messenger
             //
             panel2.Controls.Clear();
             panel2.Controls.Add(chatPanel);
-            //MessageBox.Show(additionalUser.Username);
+
+
+
+            //ListenForNewMessages(chatId);
+            if (timer.Enabled) {
+                timer.Stop();
+            }
+            timer = new Timer();
+            timer.Tick += (sender, e) => timer_Tick(sender, e, chatId);
+            timer.Interval = 1000; // 1 секунду
+            timer.Start();
         }
 
-        public void SendMessageToUser(System.Windows.Forms.TextBox messageTextBox)
+        private void timer_Tick(object sender, EventArgs e, string chatId)
+        {
+            Message[] messages = GetAllMessages(chatId);
+            bool equal = true;
+           
+            if(messages.Length == globalMessages.Length) { 
+                equal = true;
+            } else
+            {
+                equal = false;
+            }
+
+
+            if (equal)
+            {
+
+            } else {
+                globalMessages = messages;
+                panel5.Controls.Clear();
+                foreach (Message message in messages)
+                {
+                    CreateWidgetMessage(message);
+                }
+            }
+        }
+
+
+
+        public void SendMessageToUser(System.Windows.Forms.TextBox messageTextBox, string reciever_unique_id, string chatId)
         {
             string message = messageTextBox.Text;
-            MessageBox.Show(message);
+            if(message.Length > 0)
+            {
+            Message newMessage = new Message();
+            newMessage.Text = message;
+            newMessage.TimeSent = DateTime.Now;
+            newMessage.SenderId = user.UniqueId;
+            newMessage.ReceiverId = reciever_unique_id;
+
+            newMessage.SendNewMessage(chatId , newMessage);
+            messageTextBox.Text = "";
+            CreateWidgetMessage(newMessage);
+            //MessageBox.Show("Сообщение отправлено!");
+            }
+        }
+
+        public Message[] GetAllMessages(string chatId)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT array_to_json(messages) FROM chats_messages WHERE chat_unique_id = @chatId", conn))
+                {
+                    cmd.Parameters.AddWithValue("chatId", chatId);
+                    string messagesJson = (string)cmd.ExecuteScalar();
+                    Message[] messages = JsonConvert.DeserializeObject<Message[]>(messagesJson);
+                    return messages;
+                }
+            }
+        }
+
+        public void CreateWidgetMessage(Message newMessage)
+        {
+            string messageText = newMessage.Text;
+            string messageSendDate = newMessage.TimeSent.ToString();
+            string senderId = newMessage.SenderId;
+            string recieverId = newMessage.ReceiverId;
+
+            bool isSenderMainUser = false;
+
+            if (senderId == user.UniqueId)
+            {
+                isSenderMainUser = true;
+            } else
+            {
+                isSenderMainUser = false;
+            }
+
+            // Создаем новую панель для сообщения
+            TableLayoutPanel messagePanel = new TableLayoutPanel();
+            messagePanel.AutoSize = true;
+            messagePanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            messagePanel.Margin = new Padding(0, 5, 0, 5);
+            messagePanel.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
+
+            if (isSenderMainUser)
+            {
+                messagePanel.BackColor = Color.LightSeaGreen;
+            } else
+            {
+                messagePanel.BackColor = Color.Gray;
+            }
+
+            // Добавляем ячейку для текста сообщения
+            System.Windows.Forms.Label messageLabel = new System.Windows.Forms.Label();
+            messageLabel.Text = messageText;
+            messageLabel.AutoSize = true;
+            messageLabel.Margin = new Padding(5);
+            messageLabel.MaximumSize = new Size(300, 0);
+            messagePanel.Controls.Add(messageLabel, 0, 0);
+            if (isSenderMainUser)
+            {
+                messageLabel.BackColor = Color.LightSeaGreen;
+            }
+            else
+            {
+                messageLabel.BackColor = Color.Gray;
+            }
+
+
+            // Добавляем ячейку для даты отправки сообщения
+            System.Windows.Forms.Label timeSentLabel = new System.Windows.Forms.Label();
+            timeSentLabel.Text = messageSendDate.ToString();
+            timeSentLabel.AutoSize = true;
+            timeSentLabel.Margin = new Padding(5);
+            timeSentLabel.Anchor = AnchorStyles.Bottom;
+
+            if (isSenderMainUser)
+            {
+                timeSentLabel.BackColor = Color.LightSeaGreen;
+            }
+            else
+            {
+                timeSentLabel.BackColor = Color.Gray;
+            }
+            messagePanel.Controls.Add(timeSentLabel, 1, 0);
+
+            // Рассчитываем позицию панели сообщения на основе высоты предыдущей панели и отступов
+            int messagePanelY = 0;
+            if (panel5.Controls.Count > 0)
+            {
+                TableLayoutPanel lastMessagePanel = panel5.Controls[panel5.Controls.Count - 1] as TableLayoutPanel;
+                messagePanelY = lastMessagePanel.Location.Y + lastMessagePanel.Height + 10;
+            }
+
+            // Устанавливаем позицию панели сообщения и добавляем ее на panel4
+            messagePanel.Location = new Point(0, messagePanelY);
+            panel5.Controls.Add(messagePanel);
+            panel5.AutoScrollPosition = new Point(0, panel5.VerticalScroll.Maximum);
         }
 
         public string GetUserIdChat(string chat_unique_id)
@@ -292,6 +538,18 @@ namespace messenger
                         command.ExecuteNonQuery();
                     }
                 }
+
+                using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (NpgsqlCommand command = new NpgsqlCommand())
+                    {
+                        command.Connection = connection;
+                        command.CommandText = "INSERT INTO chats_messages(chat_unique_id) VALUES (@chat_unique_id)";
+                        command.Parameters.AddWithValue("chat_unique_id", this.Chat_Unique_Id);
+                        command.ExecuteNonQuery();
+                    }
+                }
             }
         }
 
@@ -324,6 +582,28 @@ namespace messenger
                 return _chats;
             }
         }
+        public class Message
+        {
+            public string SenderId { get; set; }
+            public string ReceiverId { get; set; }
+            public string Text { get; set; }
+            public DateTime TimeSent { get; set; }
+
+            public void SendNewMessage(string chatId, Message newMessage)
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+                {
+                    conn.Open();
+                    using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE chats_messages SET messages = array_append(messages, @message) WHERE chat_unique_id = @chatId", conn))
+                    {
+                        cmd.Parameters.AddWithValue("message", NpgsqlTypes.NpgsqlDbType.Jsonb, JsonConvert.SerializeObject(newMessage, Newtonsoft.Json.Formatting.None));
+                        cmd.Parameters.AddWithValue("chatId", chatId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
 
         public class User
         {
@@ -901,6 +1181,15 @@ namespace messenger
         private void button2_Click(object sender, EventArgs e)
         {
             tabControl1.SelectedTab = tabControl1.TabPages[1];
+        }
+
+        private void panel5_MouseEnter(object sender, EventArgs e)
+        {
+            panel5.Focus();
+        }
+
+        private void panel5_MouseLeave(object sender, EventArgs e)
+        {
         }
     }
 }
