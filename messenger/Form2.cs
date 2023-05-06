@@ -15,6 +15,13 @@ using System.IO;
 using System.Reflection.Emit;
 using System.Runtime.Remoting.Contexts;
 using System.Data.Entity;
+using static messenger.Form2;
+using MailKit.Search;
+using MailKit;
+using System.Runtime.Remoting.Messaging;
+using MimeKit;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using System.Xml;
 
 namespace messenger
 {
@@ -23,12 +30,192 @@ namespace messenger
         string userId = ConfigurationManager.AppSettings["UserId"];
         static string connectionString = "Server=localhost;Port=5432;Database=messenger;User Id=postgres;Password=regular123;";
         public static User user; // объявляем переменную класса User
+        public static Chats chats; // объявляем переменную класса Chats
         public Form2()
         {
             InitializeComponent();
             user = new User(); // создаем экземпляр класса User
+            chats = new Chats();
             user.LoadFromDatabase(userId); // вызываем метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
             DisplayUserData(user); // отображаем полученные данные на форме
+            LoadAllChatsUser();
+        }
+
+        public void LoadAllChatsUser()
+        {
+            panel3.Controls.Clear();
+            List<string> chatsIds = GetAllChatsIds();
+
+            foreach (string chatId in chatsIds)
+            {
+                string additionalUserId = GetUserIdChat(chatId);
+                User additionalUser = new User();
+                additionalUser.LoadFromDatabase(additionalUserId);
+                CreateNewChatPanel(additionalUser, chatId);
+            }
+        }
+
+        public void CreateNewChatPanel(User additionalUser, string chatId)
+        {
+            string username = additionalUser.Username;
+            int age = additionalUser.Age;
+            byte[] photo = additionalUser.Photo;
+            string unique_id = additionalUser.UniqueId;
+
+           // Создаем новый элемент интерфейса для вывода информации о пользователе
+            Panel chatPanel = new Panel();
+            chatPanel.BorderStyle = BorderStyle.FixedSingle;
+            chatPanel.Width = 227;
+            chatPanel.Height = 59;
+            chatPanel.Padding = new Padding(5);
+            chatPanel.Location = new Point(13, panel3.Controls.Count * chatPanel.Height);
+            chatPanel.BackColor = Color.Gray;
+
+            PictureBox photoBox = new PictureBox();
+            photoBox.Width = 44;
+            photoBox.Height = 52;
+            photoBox.SizeMode = PictureBoxSizeMode.StretchImage;
+            using (MemoryStream memoryStream = new MemoryStream(photo))
+            {
+                Image image = Image.FromStream(memoryStream);
+                photoBox.Image = image;
+            }
+
+            System.Windows.Forms.Label usernameLabel = new System.Windows.Forms.Label();
+            usernameLabel.Text = username;
+            usernameLabel.Width = 150;
+            usernameLabel.Font = new Font("Arial", 12, FontStyle.Bold);
+            usernameLabel.Location = new Point(50, 10);
+
+            chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser);
+            usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser);
+            photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser);
+
+            chatPanel.Controls.Add(photoBox);
+            chatPanel.Controls.Add(usernameLabel);
+            panel3.Controls.Add(chatPanel);
+        }
+
+        public void ClickToChatWidget(User additionalUser)
+        {
+            //ПОВТОРЕНИЕ КОДА(НАЧАЛО)
+            string username = additionalUser.Username;
+            int age = additionalUser.Age;
+            byte[] photo = additionalUser.Photo;
+            string unique_id = additionalUser.UniqueId;
+
+            // Создаем новый элемент интерфейса для вывода информации о пользователе
+            Panel chatPanel = new Panel();
+            chatPanel.BorderStyle = BorderStyle.FixedSingle;
+            chatPanel.Width = 227;
+            chatPanel.Height = 59;
+            chatPanel.Padding = new Padding(5);
+            chatPanel.Location = new Point(13, 10);
+            chatPanel.BackColor = Color.Gray;
+
+            PictureBox photoBox = new PictureBox();
+            photoBox.Width = 44;
+            photoBox.Height = 52;
+            photoBox.SizeMode = PictureBoxSizeMode.StretchImage;
+            using (MemoryStream memoryStream = new MemoryStream(photo))
+            {
+                Image image = Image.FromStream(memoryStream);
+                photoBox.Image = image;
+            }
+
+            System.Windows.Forms.Label usernameLabel = new System.Windows.Forms.Label();
+            usernameLabel.Text = username;
+            usernameLabel.Width = 150;
+            usernameLabel.Font = new Font("Arial", 12, FontStyle.Bold);
+            usernameLabel.Location = new Point(50, 10);
+
+            chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser);
+            usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser);
+            photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser);
+
+            chatPanel.Controls.Add(photoBox);
+            chatPanel.Controls.Add(usernameLabel);
+            //ПОВТОРЕНИЕ КОДА(КОНЕЦ)
+
+            //ДОБАВЛЕНИЕ TEXTBOX И КНОПКИ ДЛЯ ПЕЧАТИ И ОТПРАВКИ СООБЩЕНИЙ
+            panel11.Controls.Clear();
+
+            System.Windows.Forms.TextBox messageTextBox = new System.Windows.Forms.TextBox();
+            messageTextBox.Multiline = true;
+            messageTextBox.Width = 455;
+            messageTextBox.Height = 54;
+            messageTextBox.Location = new Point(10, 0);
+
+            System.Windows.Forms.Button write_user = new System.Windows.Forms.Button();
+            write_user.Text = "Отправить";
+            write_user.Click += (sender, e) => SendMessageToUser(messageTextBox);
+            write_user.Width = 142;
+            write_user.Height = 54;
+            write_user.Location = new Point(480, 0);
+
+            panel11.Controls.Add(messageTextBox);
+            panel11.Controls.Add(write_user);
+
+            //
+            panel2.Controls.Clear();
+            panel2.Controls.Add(chatPanel);
+            //MessageBox.Show(additionalUser.Username);
+        }
+
+        public void SendMessageToUser(System.Windows.Forms.TextBox messageTextBox)
+        {
+            string message = messageTextBox.Text;
+            MessageBox.Show(message);
+        }
+
+        public string GetUserIdChat(string chat_unique_id)
+        {
+            string user1_id = "";
+            string user2_id = "";
+            NpgsqlConnection connection = new NpgsqlConnection(connectionString);
+            connection.Open();
+            using (var command = new NpgsqlCommand($"SELECT user1_id, user2_id FROM chats WHERE chat_unique_id='{chat_unique_id}'", connection))
+            {
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        user1_id = reader.GetString(0);
+                        user2_id = reader.GetString(1);
+                    }
+                }
+            }
+            if(user1_id == user.UniqueId)
+            {
+                return user2_id;
+            }
+            return user1_id; ;
+            
+        }
+
+        public List<string> GetAllChatsIds()
+        {
+            List<string> chats = new List<string>();
+            using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
+            {
+                connection.Open();
+                using (NpgsqlCommand command = new NpgsqlCommand("SELECT chats FROM users WHERE unique_id = @unique_id", connection))
+                {
+                    command.Parameters.AddWithValue("unique_id", user.UniqueId);
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (!reader.IsDBNull(0))
+                            {
+                                string[] chatIds = (string[])reader["chats"];
+                                chats.AddRange(chatIds);
+                            }
+                        }
+                    }
+                }
+            }
+            return chats;
         }
 
         public void DisplayUserData(User user)
@@ -59,6 +246,82 @@ namespace messenger
             {
                 Image image = Image.FromStream(memoryStream);
                 pictureBox.Image = image;
+            }
+        }
+
+        public class Chat
+        {
+            public string Chat_Unique_Id { get; set; }
+            public string User1_Id { get; set; }
+            public string User2_Id { get; set; }
+            public List<Message> Messages { get; set; }
+
+            public string GenerateChatId()
+            {
+                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
+                connection.Open();
+                // Генерируем новый уникальный идентификатор
+                string newUserId = Guid.NewGuid().ToString();
+
+                // Проверяем, что пользователь с таким id еще не существует
+                using (var command = new NpgsqlCommand($"SELECT COUNT(*) FROM chats WHERE chat_unique_id='{newUserId}'", connection))
+                {
+                    int count = Convert.ToInt32(command.ExecuteScalar());
+                    while (count > 0)
+                    {
+                        newUserId = Guid.NewGuid().ToString();
+                        command.CommandText = $"SELECT COUNT(*) FROM users WHERE chat_unique_id='{newUserId}'";
+                        count = Convert.ToInt32(command.ExecuteScalar());
+                    }
+                }
+                return newUserId;
+            }
+
+            public void AddChatToDatabase()
+            {
+                using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (NpgsqlCommand command = new NpgsqlCommand())
+                    {
+                        command.Connection = connection;
+                        command.CommandText = "INSERT INTO chats(chat_unique_id, user1_id, user2_id) VALUES (@chat_unique_id, @user1_id, @user2_id)";
+                        command.Parameters.AddWithValue("chat_unique_id", this.Chat_Unique_Id);
+                        command.Parameters.AddWithValue("user1_id", this.User1_Id);
+                        command.Parameters.AddWithValue("user2_id", this.User2_Id);
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        public class Chats
+        {
+            private List<Chat> _chats;
+
+            public Chats()
+            {
+                _chats = new List<Chat>();
+            }
+
+            public void Add(Chat chat)
+            {
+                _chats.Add(chat);
+            }
+
+            public void Remove(Chat chat)
+            {
+                _chats.Remove(chat);
+            }
+
+            public Chat GetById(string id)
+            {
+                return _chats.FirstOrDefault(c => c.Chat_Unique_Id == id);
+            }
+
+            public IEnumerable<Chat> GetAll()
+            {
+                return _chats;
             }
         }
 
@@ -279,12 +542,92 @@ namespace messenger
 
         public void create_chat_with_user(string unique_id_receiver)
         {
+            if(user.UniqueId == unique_id_receiver)
+            {
+                MessageBox.Show("Вы не можете написать самому себе!");
+                return;
+            }
             //Очищаем вводы и выводы пользователей
             panel9.Controls.Clear();
             textBox3.Clear();
+
+            //Проверка существует ли уже чат между пользователями
+            if(IsChatIdInArray(user.UniqueId, unique_id_receiver))
+            {
+                MessageBox.Show("Чат между вами уже существует!");
+                tabControl1.SelectedTab = tabControl1.TabPages[0];
+                return;
+            }
+            //Создаем обьект класса чата
+            Chat newChat = new Chat();
+            newChat.Chat_Unique_Id = newChat.GenerateChatId();
+            newChat.User1_Id = user.UniqueId;
+            newChat.User2_Id = unique_id_receiver;
+
+            chats.Add(newChat);
+            //Записываем в базу данных
+            newChat.AddChatToDatabase();
+            //Добавляем chat_unique_id в поле chats[] в таблице users
+
+            AddChatUniqueIdToUserArray(newChat, user.UniqueId);
+            AddChatUniqueIdToUserArray(newChat, unique_id_receiver);
+
+            AddUserIdToArrayChatsWithUsers(user.UniqueId, unique_id_receiver);
+            AddUserIdToArrayChatsWithUsers(unique_id_receiver, user.UniqueId);
+
+            MessageBox.Show("Чат создан!");
+            
+            LoadAllChatsUser();
+
+            // Переключаемся в меню чатов
             tabControl1.SelectedTab = tabControl1.TabPages[0];
         }
 
+        public bool IsChatIdInArray(string whereUserId, string whatUserId)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT array_position(chats_with_users_id, @what_user_id) FROM users WHERE unique_id = @where_user_id", conn))
+                {
+                    cmd.Parameters.AddWithValue("what_user_id", whatUserId);
+                    cmd.Parameters.AddWithValue("where_user_id", whereUserId);
+                    var result = cmd.ExecuteScalar();
+                    if (Convert.IsDBNull(result))
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        return Convert.ToInt32(result) > 0;
+                    }
+                }
+            }
+        }
+
+        private static void AddUserIdToArrayChatsWithUsers(string where_user_id, string what_user_id)
+        {
+            NpgsqlConnection conn;
+            NpgsqlCommand cmd;
+            conn = new NpgsqlConnection(connectionString);
+            conn.Open();
+            cmd = new NpgsqlCommand("UPDATE users SET chats_with_users_id = array_append(chats_with_users_id, @what_user_id) WHERE unique_id = @where_user_id", conn);
+            cmd.Parameters.AddWithValue("where_user_id", where_user_id);
+            cmd.Parameters.AddWithValue("what_user_id", what_user_id);
+            cmd.ExecuteNonQuery();
+        }
+
+        private static void AddChatUniqueIdToUserArray(Chat newChat, string user_id)
+        {
+            NpgsqlConnection conn;
+            NpgsqlCommand cmd;
+            conn = new NpgsqlConnection(connectionString);
+            conn.Open();
+            cmd = new NpgsqlCommand("UPDATE users SET chats = array_append(chats, @chat_id) WHERE unique_id = @user_id", conn);
+            cmd.Parameters.AddWithValue("chat_id", newChat.Chat_Unique_Id);
+            cmd.Parameters.AddWithValue("user_id", user_id);
+            cmd.ExecuteNonQuery();
+        }
 
         public void SearchUsers(string searchText)
         {
@@ -302,7 +645,7 @@ namespace messenger
                         ClearSearchResults();
                         while (reader.Read())
                         {
-                            
+                            foundUsers = true;
                             // Получаем данные о пользователе
                             string username = reader.GetString(0);
                             int age = reader.GetInt32(1);
@@ -332,7 +675,13 @@ namespace messenger
                             write_user.Click += (sender, e) => create_chat_with_user(unique_id);
 
                             System.Windows.Forms.Label nameLabel = new System.Windows.Forms.Label();
-                            nameLabel.Text = username;
+                            if(unique_id == user.UniqueId)
+                            {
+                                nameLabel.Text = username + "(ВЫ)";
+                            } else
+                            {
+                                nameLabel.Text = username;
+                            }
                             nameLabel.Font = new Font("Arial", 12, FontStyle.Bold);
                             nameLabel.Width = 150;
                             nameLabel.Location = new Point(50, 10);
@@ -542,6 +891,16 @@ namespace messenger
             Form1.OpenPhotoAndAddPhotoToPictureBox(pictureBox7);
             user.ChangePhoto(Form1.GetImageBytesFromPictureBox(pictureBox7));
             MessageBox.Show("Фото изменено!");
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("https://github.com/CandyPopsWorld/messenger-kursovay");
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            tabControl1.SelectedTab = tabControl1.TabPages[1];
         }
     }
 }
