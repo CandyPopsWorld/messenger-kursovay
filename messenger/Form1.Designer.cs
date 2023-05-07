@@ -55,6 +55,7 @@
             this.label11 = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
             this.textBox6 = new System.Windows.Forms.TextBox();
+            this.label12 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.tabControl1.SuspendLayout();
@@ -77,9 +78,9 @@
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(135, 129);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(178, 13);
+            this.label2.Size = new System.Drawing.Size(284, 13);
             this.label2.TabIndex = 1;
-            this.label2.Text = "Имя пользователя(*обязательно)";
+            this.label2.Text = "Имя пользователя(*обязательно,от 3 до 20 символов)";
             // 
             // label3
             // 
@@ -104,9 +105,9 @@
             this.label5.AutoSize = true;
             this.label5.Location = new System.Drawing.Point(454, 85);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(49, 13);
+            this.label5.Size = new System.Drawing.Size(261, 13);
             this.label5.TabIndex = 7;
-            this.label5.Text = "Возраст";
+            this.label5.Text = "Возраст(если 0 возраст считается не указанным)";
             // 
             // numericUpDown1
             // 
@@ -160,6 +161,7 @@
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(292, 20);
             this.textBox2.TabIndex = 14;
+            this.textBox2.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
             // 
             // textBox3
             // 
@@ -197,6 +199,7 @@
             // 
             this.tabPage1.BackColor = System.Drawing.SystemColors.Menu;
             this.tabPage1.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
+            this.tabPage1.Controls.Add(this.label12);
             this.tabPage1.Controls.Add(this.label1);
             this.tabPage1.Controls.Add(this.pictureBox1);
             this.tabPage1.Controls.Add(this.label2);
@@ -278,6 +281,7 @@
             this.textBox5.Name = "textBox5";
             this.textBox5.Size = new System.Drawing.Size(292, 20);
             this.textBox5.TabIndex = 18;
+            this.textBox5.TextChanged += new System.EventHandler(this.textBox5_TextChanged);
             // 
             // label7
             // 
@@ -337,6 +341,18 @@
             this.textBox6.Size = new System.Drawing.Size(324, 20);
             this.textBox6.TabIndex = 0;
             // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.label12.Location = new System.Drawing.Point(70, 430);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(715, 26);
+            this.label12.TabIndex = 17;
+            this.label12.Text = "Пароль должен содержать от 8 до 20 символов. \r\nНеобходимо использовать: латиниски" +
+    "е буквы(хотя бы одну в верхнем и нижнем регистре), хотя бы одну цифру, хотя бы о" +
+    "дин спец.символ";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -390,6 +406,7 @@
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.TextBox textBox6;
         private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Label label12;
     }
 }
 

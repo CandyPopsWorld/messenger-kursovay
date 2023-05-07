@@ -292,7 +292,7 @@ namespace messenger
 
             if (!ValidateLogin(login))
             {
-                MessageBox.Show("Логин должен содержать от 5 до 20 символов");
+                MessageBox.Show("Логин должен содержать от 3 до 20 символов");
                 return;
             }
 
@@ -563,6 +563,24 @@ namespace messenger
             var result = new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[random.Next(s.Length)]).ToArray());
             return result;
+        }
+
+        private void textBox2_TextChanged(object sender, EventArgs e)
+        {
+            if (textBox2.Text != textBox2.Text.ToLower())
+            {
+                textBox2.Text = textBox2.Text.ToLower();
+                textBox2.SelectionStart = textBox2.Text.Length;
+            }
+        }
+
+        private void textBox5_TextChanged(object sender, EventArgs e)
+        {
+            if (textBox5.Text != textBox5.Text.ToLower())
+            {
+                textBox5.Text = textBox5.Text.ToLower();
+                textBox5.SelectionStart = textBox5.Text.Length;
+            }
         }
     }
 }

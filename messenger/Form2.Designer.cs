@@ -111,6 +111,7 @@
             this.tabControl1.SelectedIndex = 0;
             this.tabControl1.Size = new System.Drawing.Size(937, 517);
             this.tabControl1.TabIndex = 3;
+            this.tabControl1.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
             // 
             // tabPage1
             // 
@@ -205,6 +206,8 @@
             this.panel3.Name = "panel3";
             this.panel3.Size = new System.Drawing.Size(257, 248);
             this.panel3.TabIndex = 30;
+            this.panel3.MouseEnter += new System.EventHandler(this.panel3_MouseEnter);
+            this.panel3.MouseLeave += new System.EventHandler(this.panel3_MouseLeave);
             // 
             // label24
             // 
@@ -314,6 +317,7 @@
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(258, 20);
             this.textBox3.TabIndex = 0;
+            this.textBox3.TextChanged += new System.EventHandler(this.textBox3_TextChanged);
             // 
             // tabPage3
             // 
@@ -554,7 +558,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "Form2";
-            this.Text = "Form2";
+            this.Text = "ЧАТЫ";
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.panel10.ResumeLayout(false);

@@ -26,6 +26,9 @@ using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net.PeerToPeer;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 namespace messenger
 {
@@ -42,7 +45,7 @@ namespace messenger
 
         Message[] globalMessages;
         List<string> globalChats;
-        bool initChats = false;
+        //bool initChats = false;
 
 
 
@@ -69,15 +72,17 @@ namespace messenger
         public void LoadAllChatsUser()
         {
             List<string> chatsIds = GetAllChatsIds();
+            chatsIds.Reverse();
 
-            if(chatsIds.Count == globalChats.Count)
+            if (chatsIds.Count == globalChats.Count)
             {
                 return;
             }
+            panel3.Controls.Clear();
             globalChats = chatsIds;
             foreach (string chatId in chatsIds)
             {
-                panel3.Controls.Clear();
+                //panel3.Controls.Clear();
                 string additionalUserId = GetUserIdChat(chatId);
                 User additionalUser = new User();
                 additionalUser.LoadFromDatabase(additionalUserId);
@@ -88,6 +93,7 @@ namespace messenger
         public void InitLoadAllChaUser()
         {
             List<string> chatsIds = GetAllChatsIds();
+            chatsIds.Reverse();
             globalChats = chatsIds;
             if(chatsIds.Count == 0)
             {
@@ -101,7 +107,7 @@ namespace messenger
             }
             foreach (string chatId in chatsIds)
             {
-                panel3.Controls.Clear();
+                //panel3.Controls.Clear();
                 string additionalUserId = GetUserIdChat(chatId);
                 User additionalUser = new User();
                 additionalUser.LoadFromDatabase(additionalUserId);
@@ -125,6 +131,13 @@ namespace messenger
             chatPanel.Location = new Point(13, panel3.Controls.Count * chatPanel.Height);
             chatPanel.BackColor = Color.Gray;
 
+            System.Windows.Forms.Button hiddenButton = new System.Windows.Forms.Button();
+            hiddenButton.Visible = false;
+            hiddenButton.Name = "hiddenButton";
+            hiddenButton.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);
+            
+
+
             PictureBox photoBox = new PictureBox();
             photoBox.Width = 44;
             photoBox.Height = 52;
@@ -145,8 +158,17 @@ namespace messenger
             usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);
             photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);
 
+            chatPanel.MouseEnter += (sender, e) => panel3.Focus();
+            chatPanel.MouseLeave += (sender, e) => this.ActiveControl = null;
+            usernameLabel.MouseEnter += (sender, e) => panel3.Focus();
+            usernameLabel.MouseLeave += (sender, e) => this.ActiveControl = null;
+            photoBox.MouseEnter += (sender, e) => panel3.Focus();
+            photoBox.MouseLeave += (sender, e) => this.ActiveControl = null;
+
+
             chatPanel.Controls.Add(photoBox);
             chatPanel.Controls.Add(usernameLabel);
+            chatPanel.Controls.Add(hiddenButton);
             panel3.Controls.Add(chatPanel);
         }
 
@@ -169,6 +191,24 @@ namespace messenger
             {
                 CreateWidgetMessage(message);
             }
+            /*if (messages.Length > 0)
+            {
+                foreach (Message message in messages)
+                {
+                    CreateWidgetMessage(message);
+                }
+            } else
+            {
+                foreach (Message message in messages)
+                {
+                    CreateWidgetMessage(message);
+                }
+                System.Windows.Forms.Label label = new System.Windows.Forms.Label();
+                label.Width = 300;
+                label.Text = "Чат еще пустой!";
+                panel5.Controls.Add(label);
+            }*/
+
 
             //ПОВТОРЕНИЕ КОДА(НАЧАЛО)
             string username = additionalUser.Username;
@@ -214,9 +254,18 @@ namespace messenger
 
             System.Windows.Forms.TextBox messageTextBox = new System.Windows.Forms.TextBox();
             messageTextBox.Multiline = true;
+            messageTextBox.MaxLength = 4096;
             messageTextBox.Width = 455;
             messageTextBox.Height = 54;
             messageTextBox.Location = new Point(10, 0);
+
+
+            System.Windows.Forms.Label countSymbol = new System.Windows.Forms.Label();
+            countSymbol.Text = "0/4096";
+            countSymbol.Width = 300;
+            countSymbol.Location = new Point(423, 60);
+
+            messageTextBox.TextChanged += (sender, e) => countSymbol.Text = messageTextBox.Text.Length + "/4096";
 
             System.Windows.Forms.Button write_user = new System.Windows.Forms.Button();
             write_user.Text = "Отправить";
@@ -227,6 +276,7 @@ namespace messenger
 
             panel11.Controls.Add(messageTextBox);
             panel11.Controls.Add(write_user);
+            panel11.Controls.Add(countSymbol);
 
             //
             panel2.Controls.Clear();
@@ -278,24 +328,64 @@ namespace messenger
             }
         }
 
+        public static async Task<DateTime> GetNetworkTime()
+        {
+            // Настройка NTP-сервера
+            string ntpServer = "pool.ntp.org";
+            int ntpPort = 123;
 
+            // Создание сокета
+            using (var ntpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
+            {
+                // Установка таймаута в 5 секунд
+                ntpSocket.ReceiveTimeout = 5000;
 
-        public void SendMessageToUser(System.Windows.Forms.TextBox messageTextBox, string reciever_unique_id, string chatId)
+                // Получение адреса NTP-сервера
+                var addresses = await Dns.GetHostAddressesAsync(ntpServer);
+
+                // Отправка запроса на NTP-сервер
+                var ntpData = new byte[48];
+                ntpData[0] = 0x1B;
+                var time = await Task.Run(() =>
+                {
+                    ntpSocket.SendTo(ntpData, new IPEndPoint(addresses[0], ntpPort));
+                    ntpSocket.Receive(ntpData);
+                    var intpart = (ulong)ntpData[40] << 24 | (ulong)ntpData[41] << 16 | (ulong)ntpData[42] << 8 | ntpData[43];
+                    var fractpart = (ulong)ntpData[44] << 24 | (ulong)ntpData[45] << 16 | (ulong)ntpData[46] << 8 | ntpData[47];
+                    var milliseconds = (intpart * 1000) + ((fractpart * 1000) / 0x100000000L);
+                    return milliseconds;
+                });
+
+                // Конвертация времени из NTP в DateTime
+                var dateTime = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(time);
+                return dateTime.ToLocalTime();
+            }
+        }
+
+        async public void SendMessageToUser(System.Windows.Forms.TextBox messageTextBox, string reciever_unique_id, string chatId)
         {
             string message = messageTextBox.Text;
             if(message.Length > 0)
             {
+                await CreateMessage(message, reciever_unique_id, chatId);
+                messageTextBox.Text = "";
+            }
+        }
+
+        private static async Task CreateMessage(string message, string reciever_unique_id, string chatId)
+        {
             Message newMessage = new Message();
             newMessage.Text = message;
-            newMessage.TimeSent = DateTime.Now;
+            var networkTime = await GetNetworkTime();
+
+            newMessage.TimeSent = networkTime;
+            //newMessage.TimeSent = DateTime.Now;
             newMessage.SenderId = user.UniqueId;
             newMessage.ReceiverId = reciever_unique_id;
 
-            newMessage.SendNewMessage(chatId , newMessage);
-            messageTextBox.Text = "";
+            newMessage.SendNewMessage(chatId, newMessage);
             //CreateWidgetMessage(newMessage);
             //MessageBox.Show("Сообщение отправлено!");
-            }
         }
 
         public Message[] GetAllMessages(string chatId)
@@ -818,7 +908,7 @@ namespace messenger
             Application.Restart();
         }
 
-        public void create_chat_with_user(string unique_id_receiver)
+        async public void create_chat_with_user(string unique_id_receiver)
         {
             if(user.UniqueId == unique_id_receiver)
             {
@@ -853,13 +943,84 @@ namespace messenger
             AddUserIdToArrayChatsWithUsers(user.UniqueId, unique_id_receiver);
             AddUserIdToArrayChatsWithUsers(unique_id_receiver, user.UniqueId);
 
+            string messageCreate = "(" + user.Username + " создал чат)";
+            await CreateMessage(messageCreate, unique_id_receiver, newChat.Chat_Unique_Id);
+
             MessageBox.Show("Чат создан!");
             
             LoadAllChatsUser();
 
             // Переключаемся в меню чатов
             tabControl1.SelectedTab = tabControl1.TabPages[0];
+            ClickFirstPanelButton(panel3);
+
         }
+
+        private void ClickFirstPanelButton(Panel panel)
+        {
+            // Находим первую вложенную панель
+            Panel firstPanel = panel3.Controls.OfType<Panel>().FirstOrDefault();
+
+            // Если нашли панель, ищем первую кнопку на этой панели и имитируем клик по ней
+            if (firstPanel != null)
+            {
+                System.Windows.Forms.Button firstButton = firstPanel.Controls.OfType<System.Windows.Forms.Button>().FirstOrDefault();
+                if (firstButton != null)
+                {
+                    // отправляем клавишу "Tab", чтобы установить фокус на кнопке
+                    SendKeys.Send("{TAB}");
+
+                    // отправляем клавишу "Enter", чтобы имитировать клик по кнопке
+                    SendKeys.Send("{ENTER}");
+                }
+            }
+        }
+
+        /*private void ClickFirstPanelButton(Panel mainPanel)
+        {
+            // Находим первую панель внутри главной панели
+            Panel firstPanel = panel3.Controls.OfType<Panel>().FirstOrDefault();
+
+            // Если нашли панель, то ищем на ней скрытую кнопку и кликаем на нее
+            if (firstPanel != null)
+            {
+                System.Windows.Forms.Button button = firstPanel.Controls.OfType<System.Windows.Forms.Button>().FirstOrDefault(b => b.Name == "hiddenButton");
+                if (button != null)
+                {
+                    //MessageBox.Show("О ЭТО КНОПКА!");
+                    //button.Focus();
+                    //button.PerformClick(); // Вызываем метод PerformClick() на найденной кнопке
+                    button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+            }
+        }*/
+
+        /*class NativeMethods
+        {
+            [DllImport("user32.dll", CharSet = CharSet.Auto)]
+            public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
+
+            public const int WM_LBUTTONDOWN = 0x0201;
+            public const int WM_LBUTTONUP = 0x0202;
+        }
+
+        private void ClickFirstPanel(Panel panel)
+        {
+            // Находим первый контрол внутри панели
+            Control firstControl = panel.Controls[0];
+
+            MessageBox.Show(firstControl.BackColor.ToString());
+
+            // Если нашли контрол, то выполним на него клик
+            if (firstControl != null)
+            {
+                firstControl.Focus(); // устанавливаем фокус на первый контрол внутри панели
+                NativeMethods.SendMessage(panel.Handle, NativeMethods.WM_LBUTTONDOWN, IntPtr.Zero, IntPtr.Zero); // эмулируем нажатие кнопки мыши на панели
+                NativeMethods.SendMessage(panel.Handle, NativeMethods.WM_LBUTTONUP, IntPtr.Zero, IntPtr.Zero); // эмулируем отпускание кнопки мыши на панели
+            }
+        }*/
+
+
 
         public bool IsChatIdInArray(string whereUserId, string whatUserId)
         {
@@ -965,7 +1126,15 @@ namespace messenger
                             nameLabel.Location = new Point(50, 10);
 
                             System.Windows.Forms.Label ageLabel = new System.Windows.Forms.Label();
-                            ageLabel.Text = $"Age: {age}";
+                            string displayAge = "";
+                            if(age != 0)
+                            {
+                                displayAge = "Возраст: " + age.ToString();
+                            } else
+                            {
+                                displayAge = "(Возраст не указан)";
+                            }
+                            ageLabel.Text = displayAge;
                             ageLabel.Font = new Font("Arial", 10);
                             ageLabel.Width = 150;
                             ageLabel.Location = new Point(50, 30);
@@ -1188,6 +1357,45 @@ namespace messenger
 
         private void panel5_MouseLeave(object sender, EventArgs e)
         {
+        }
+
+        private void panel3_MouseEnter(object sender, EventArgs e)
+        {
+            panel3.Focus();
+        }
+
+        private void panel3_MouseLeave(object sender, EventArgs e)
+        {
+            this.ActiveControl= null;
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            if (textBox3.Text != textBox3.Text.ToLower())
+            {
+                textBox3.Text = textBox3.Text.ToLower();
+                textBox3.SelectionStart = textBox3.Text.Length;
+            }
+        }
+
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Получаем индекс текущей выбранной вкладки
+            int selectedIndex = tabControl1.SelectedIndex;
+
+            // Устанавливаем заголовок формы в зависимости от выбранной вкладки
+            switch (selectedIndex)
+            {
+                case 0:
+                    this.Text = "ЧАТЫ";
+                    break;
+                case 1:
+                    this.Text = "ПОИСК ПОЛЬЗОВАТЕЛЕЙ";
+                    break;
+                case 2:
+                    this.Text = "НАСТРОЙКИ";
+                    break;
+            }
         }
     }
 }
