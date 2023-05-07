@@ -227,7 +227,7 @@ namespace messenger
             config.Save(ConfigurationSaveMode.Modified);
 
 
-            MessageBox.Show("Registration successful!");
+            MessageBox.Show("Регистрация успешна!");
             Application.Restart();
         }
         public static byte[] GetImageBytesFromPictureBox(PictureBox pictureBox)

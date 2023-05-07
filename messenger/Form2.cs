@@ -25,6 +25,7 @@ using System.Xml;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Net.PeerToPeer;
 
 namespace messenger
 {
@@ -37,7 +38,13 @@ namespace messenger
         // Создаем таймер и настраиваем его
         Timer timer = new Timer();
 
+        Timer chatTimer = new Timer();
+
         Message[] globalMessages;
+        List<string> globalChats;
+        bool initChats = false;
+
+
 
         public string currentOpenChatId = "";
         public Form2()
@@ -47,90 +54,54 @@ namespace messenger
             chats = new Chats();
             user.LoadFromDatabase(userId); // вызываем метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
             DisplayUserData(user); // отображаем полученные данные на форме
-            LoadAllChatsUser();
-        }
+            InitLoadAllChaUser();
 
-        public void ListenForNewMessages(string chatId)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            if (chatTimer.Enabled)
             {
-                conn.Open();
-                using (NpgsqlCommand cmd = new NpgsqlCommand())
-                {
-                    cmd.Connection = conn;
-                    cmd.CommandText = "LISTEN new_message";
-                    cmd.ExecuteNonQuery();
-                }
+                timer.Stop();
             }
-
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-                using (NpgsqlCommand cmd = new NpgsqlCommand())
-                {
-                    cmd.Connection = conn;
-                    cmd.CommandText = "CREATE OR REPLACE FUNCTION notify_new_message() RETURNS TRIGGER AS $$ BEGIN PERFORM pg_notify('new_message', NEW.chat_unique_id::text); RETURN NEW; END; $$ LANGUAGE plpgsql;";
-                    cmd.ExecuteNonQuery();
-                }
-            }
-
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-                using (NpgsqlCommand cmd = new NpgsqlCommand())
-                {
-                    cmd.Connection = conn;
-                    cmd.CommandText = $"DROP TRIGGER IF EXISTS new_message_trigger ON chats_messages; CREATE TRIGGER new_message_trigger AFTER UPDATE OF messages ON chats_messages FOR EACH ROW WHEN (OLD.messages IS DISTINCT FROM NEW.messages) EXECUTE FUNCTION notify_new_message();";
-                    cmd.ExecuteNonQuery();
-                }
-            }
-
-            using (NpgsqlConnection notificationConn = new NpgsqlConnection(connectionString))
-            {
-                notificationConn.Open();
-                notificationConn.Notification += (o, e) =>
-                {
-                    if (e.Payload == chatId)
-                    {
-                        // New message received for the specified chatId.
-                        using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-                        {
-                            conn.Open();
-                            using (NpgsqlCommand cmd = new NpgsqlCommand())
-                            {
-                                cmd.Connection = conn;
-                                cmd.CommandText = $"SELECT messages FROM chats_messages WHERE chat_unique_id = '{chatId}'";
-                                string messagesJson = (string)cmd.ExecuteScalar();
-                                Message[] messages = JsonConvert.DeserializeObject<Message[]>(messagesJson);
-
-                                foreach (Message message in messages)
-                                {
-                                    CreateWidgetMessage(message);
-                                }
-                            }
-                        }
-                    }
-                };
-                using (NpgsqlCommand cmd = new NpgsqlCommand())
-                {
-                    cmd.Connection = notificationConn;
-                    cmd.CommandText = "LISTEN new_message";
-                    cmd.ExecuteNonQuery();
-                }
-                while (true)
-                {
-                    notificationConn.Wait(5000);
-                }
-            }
+            chatTimer = new Timer();
+            chatTimer.Tick += (sender, e) => LoadAllChatsUser();
+            chatTimer.Interval = 3000; // 3 секунду
+            chatTimer.Start();
         }
 
         public void LoadAllChatsUser()
         {
-            panel3.Controls.Clear();
             List<string> chatsIds = GetAllChatsIds();
 
+            if(chatsIds.Count == globalChats.Count)
+            {
+                return;
+            }
+            globalChats = chatsIds;
             foreach (string chatId in chatsIds)
             {
+                panel3.Controls.Clear();
+                string additionalUserId = GetUserIdChat(chatId);
+                User additionalUser = new User();
+                additionalUser.LoadFromDatabase(additionalUserId);
+                CreateNewChatPanel(additionalUser, chatId);
+            }
+        }
+
+        public void InitLoadAllChaUser()
+        {
+            List<string> chatsIds = GetAllChatsIds();
+            globalChats = chatsIds;
+            if(chatsIds.Count == 0)
+            {
+                System.Windows.Forms.Label label = new System.Windows.Forms.Label();
+                label.Text = "У вас еще нет чатов!";
+                label.Width = 200;
+                label.Font = new Font("Arial", 12, FontStyle.Bold);
+                label.Location = new Point(30, 10);
+                panel3.Controls.Add(label);
+                return;
+            }
+            foreach (string chatId in chatsIds)
+            {
+                panel3.Controls.Clear();
                 string additionalUserId = GetUserIdChat(chatId);
                 User additionalUser = new User();
                 additionalUser.LoadFromDatabase(additionalUserId);
@@ -276,6 +247,9 @@ namespace messenger
         private void timer_Tick(object sender, EventArgs e, string chatId)
         {
             Message[] messages = GetAllMessages(chatId);
+            
+            int lastMessageIndex = messages.Length - 1;
+
             bool equal = true;
            
             if(messages.Length == globalMessages.Length) { 
@@ -291,10 +265,15 @@ namespace messenger
 
             } else {
                 globalMessages = messages;
-                panel5.Controls.Clear();
+                //panel5.Controls.Clear();
                 foreach (Message message in messages)
                 {
-                    CreateWidgetMessage(message);
+                    if (Array.IndexOf(messages, message) == lastMessageIndex)
+                    {
+                        // Это последняя итерация
+                        CreateWidgetMessage(message);
+                    }
+
                 }
             }
         }
@@ -314,7 +293,7 @@ namespace messenger
 
             newMessage.SendNewMessage(chatId , newMessage);
             messageTextBox.Text = "";
-            CreateWidgetMessage(newMessage);
+            //CreateWidgetMessage(newMessage);
             //MessageBox.Show("Сообщение отправлено!");
             }
         }
@@ -468,7 +447,15 @@ namespace messenger
         {
             // отображаем данные пользователя на форме в табе чат
             label1.Text = user.Username;
-            label22.Text = user.Age.ToString();
+
+            if(user.Age == 0)
+            {
+                label22.Text = "(Возраст не указан)";
+                label24.Text = "";
+            } else
+            {
+                label22.Text = user.Age.ToString();
+            }
             label23.Text = user.Email;
             SetImageFromBytes(user.Photo, pictureBox2);
             // отображаем данные пользователя в настройках
@@ -478,6 +465,17 @@ namespace messenger
             FillPasswordTextBoxLengthSymbols();
             SetImageFromBytes(user.Photo, pictureBox7);
             label31.Text += user.RegistrationDate.ToString();
+
+            //
+
+            System.Windows.Forms.Label label = new System.Windows.Forms.Label();
+            label.Text = "Выберите чат чтобы начать переписку!";
+            label.Font = new Font("Arial", 12, FontStyle.Bold);
+            label.Width = 400;
+            label.Location = new Point(130, 110);
+            label.ForeColor = Color.Gray;
+
+            panel5.Controls.Add(label);
         }
 
         private void FillPasswordTextBoxLengthSymbols()
