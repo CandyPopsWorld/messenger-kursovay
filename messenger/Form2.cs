@@ -313,6 +313,27 @@ namespace messenger
 
             if (equal)
             {
+                bool equalText = true;
+                for(int i = 0; i < messages.Length; i++)
+                {
+                    if (messages[i].Text == globalMessages[i].Text)
+                    {
+
+                    } else
+                    {
+                        equalText = false;
+                    }
+                }
+
+                if(equalText == false)
+                {
+                    globalMessages = messages;
+                    panel5.Controls.Clear();
+                    foreach (Message message in messages)
+                    {
+                        CreateWidgetMessage(message);
+                    }
+                }
 
             } else {
                 if(messages.Length > globalMessages.Length)
@@ -443,30 +464,33 @@ namespace messenger
             messagePanel.Margin = new Padding(0, 5, 0, 5);
             messagePanel.CellBorderStyle = TableLayoutPanelCellBorderStyle.Single;
 
+            ContextMenuStrip contextMenuStrip = new ContextMenuStrip();
             if (isSenderMainUser)
             {
                 messagePanel.BackColor = Color.LightSeaGreen;
                 //КОНТЕКСТНОЕ МЕНЮ ДЛЯ messagePanel
                 // Создание контекстного меню
-                ContextMenuStrip contextMenuStrip = new ContextMenuStrip();
 
                 // Создание элементов меню
                 ToolStripMenuItem deleteMessageItem = new ToolStripMenuItem("Удалить сообщение");
-                deleteMessageItem.Click += (sender, e) => DeleteMessageMenuClick(newMessage.MessageUniqueId, newMessage.MessageChatId);
+                deleteMessageItem.Click += (sender, e) => DeleteMessageMenuClick(newMessage.MessageUniqueId);
 
-                //ToolStripMenuItem changeMessageItem = new ToolStripMenuItem("Изменить сообщение");
-                //changeMessageItem.Click += (sender, e) => ChangeMessageMenuClick(newMessage);
+                ToolStripMenuItem changeMessageItem = new ToolStripMenuItem("Изменить сообщение");
+                changeMessageItem.Click += (sender, e) => ChangeMessageMenuClick(newMessage);
 
                 // Добавление элементов в меню
                 contextMenuStrip.Items.Add(deleteMessageItem);
-                //contextMenuStrip.Items.Add(changeMessageItem);
-                messagePanel.ContextMenuStrip = contextMenuStrip;
-
+                contextMenuStrip.Items.Add(changeMessageItem);
 
             } else
             {
                 messagePanel.BackColor = Color.Gray;
             }
+
+            ToolStripMenuItem copyMessageItem = new ToolStripMenuItem("Копировать текст сообщения");
+            copyMessageItem.Click += (sender, e) => CopyMessageMenuClick(newMessage.Text);
+            contextMenuStrip.Items.Add(copyMessageItem);
+            messagePanel.ContextMenuStrip = contextMenuStrip;
 
             // Добавляем ячейку для текста сообщения
             System.Windows.Forms.Label messageLabel = new System.Windows.Forms.Label();
@@ -516,7 +540,7 @@ namespace messenger
             panel5.AutoScrollPosition = new Point(0, panel5.VerticalScroll.Maximum);
         }
 
-        public void DeleteMessageMenuClick(string MessageUniqueId, string MessageChatId)
+        public void DeleteMessageMenuClick(string MessageUniqueId)
         {
             DeleteMessage(currentOpenChatId, MessageUniqueId);
             panel5.Controls.Clear();
@@ -531,9 +555,88 @@ namespace messenger
         }
         public void ChangeMessageMenuClick(Message message)
         {
-            MessageBox.Show("Change");
+            EditMessageMenuClick(message);
         }
 
+        public void CopyMessageMenuClick(string message)
+        {
+            CopyToClipboard(message);
+        }
+
+        public static void CopyToClipboard(string text)
+        {
+            Clipboard.SetText(text);
+        }
+
+        private void EditMessageMenuClick(Message message)
+        {
+            // Создаем новое всплывающее окно
+            Form popupForm = new Form();
+            popupForm.Text = "Изменение сообщения";
+            popupForm.Width = 430;
+            popupForm.Height = 330;
+            //popupForm.StartPosition = FormStartPosition.CenterParent;
+            //popupForm.FormBorderStyle = FormBorderStyle.FixedDialog;
+            //popupForm.MaximizeBox = false;
+
+            // Добавляем элементы управления на форму
+            System.Windows.Forms.Label label = new System.Windows.Forms.Label();
+            label.Text = "Осталось символов: " + (4096 - message.Text.Length);
+            label.Location = new Point(10, 10);
+            label.AutoSize = true;
+
+            System.Windows.Forms.TextBox textBox = new System.Windows.Forms.TextBox();
+            textBox.Text = message.Text;
+            textBox.Multiline = true;
+            textBox.ScrollBars = ScrollBars.Vertical;
+            textBox.WordWrap = true;
+            textBox.MaxLength = 4096;
+            textBox.Location = new Point(10, 30);
+            textBox.Size = new Size(400, 200);
+            textBox.TextChanged += (sender, e) =>
+            {
+                label.Text = "Осталось символов: " + (4096 - textBox.Text.Length);
+            };
+
+            System.Windows.Forms.Button cancelButton = new System.Windows.Forms.Button();
+            cancelButton.Text = "Отмена";
+            cancelButton.DialogResult = DialogResult.Cancel;
+            cancelButton.Location = new Point(335, 240);
+            cancelButton.Size = new Size(75, 23);
+
+            System.Windows.Forms.Button editButton = new System.Windows.Forms.Button();
+            editButton.Text = "Изменить";
+            editButton.DialogResult = DialogResult.OK;
+            editButton.Location = new Point(255, 240);
+            editButton.Size = new Size(75, 23);
+
+            // Добавляем элементы управления на форму
+            popupForm.Controls.Add(label);
+            popupForm.Controls.Add(textBox);
+            popupForm.Controls.Add(cancelButton);
+            popupForm.Controls.Add(editButton);
+
+            // Отображаем всплывающее окно
+            DialogResult result = popupForm.ShowDialog();
+
+            // Если была нажата кнопка "Изменить"
+            if (result == DialogResult.OK)
+            {
+                if(message.Text == textBox.Text)
+                {
+                    return;
+                }
+
+                if(textBox.Text.Length == 0)
+                {
+                    MessageBox.Show("Сообщение не может быть пустым!");
+                    textBox.Text = message.Text;
+                }
+                // Изменяем текст сообщения и сохраняем изменения в базе данных
+                message.Text = textBox.Text;
+                UpdateMessageText(currentOpenChatId, message.MessageUniqueId, message.Text);
+            }
+        }
 
         public string GetUserIdChat(string chat_unique_id)
         {
@@ -765,6 +868,33 @@ namespace messenger
                     {
                         updateCmd.Parameters.AddWithValue("messages", NpgsqlTypes.NpgsqlDbType.Jsonb | NpgsqlTypes.NpgsqlDbType.Array, messages);
                         //updateCmd.Parameters.AddWithValue("chatId", chatId);
+                        updateCmd.Parameters.Add("chatId", NpgsqlDbType.Text).Value = chatId;
+                        updateCmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        async public void UpdateMessageText(string chatId, string messageUniqueId, string newText)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+
+                // Получаем текущий список сообщений
+                Message[] messages = GetAllMessages(chatId);
+
+                // Находим нужное сообщение и обновляем его текст
+                var messageToUpdate = messages.FirstOrDefault(m => m.MessageUniqueId == messageUniqueId);
+                if (messageToUpdate != null)
+                {
+                    messageToUpdate.Text = newText;
+                    messageToUpdate.TimeSent = await GetNetworkTime();
+
+                    // Сохраняем изменения в базе данных
+                    using (NpgsqlCommand updateCmd = new NpgsqlCommand("UPDATE chats_messages SET messages = @messages WHERE chat_unique_id = @chatId", conn))
+                    {
+                        updateCmd.Parameters.AddWithValue("messages", NpgsqlTypes.NpgsqlDbType.Jsonb | NpgsqlTypes.NpgsqlDbType.Array, messages);
                         updateCmd.Parameters.Add("chatId", NpgsqlDbType.Text).Value = chatId;
                         updateCmd.ExecuteNonQuery();
                     }
