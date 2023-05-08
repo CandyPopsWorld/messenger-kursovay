@@ -43,6 +43,7 @@
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.label12 = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.button4 = new System.Windows.Forms.Button();
             this.label8 = new System.Windows.Forms.Label();
@@ -55,7 +56,6 @@
             this.label11 = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
             this.textBox6 = new System.Windows.Forms.TextBox();
-            this.label12 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.tabControl1.SuspendLayout();
@@ -221,6 +221,18 @@
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "РЕГИСТРАЦИЯ";
             // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.label12.Location = new System.Drawing.Point(70, 430);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(715, 26);
+            this.label12.TabIndex = 17;
+            this.label12.Text = "Пароль должен содержать от 8 до 20 символов. \r\nНеобходимо использовать: латиниски" +
+    "е буквы(хотя бы одну в верхнем и нижнем регистре), хотя бы одну цифру, хотя бы о" +
+    "дин спец.символ";
+            // 
             // tabPage2
             // 
             this.tabPage2.BackColor = System.Drawing.SystemColors.Menu;
@@ -341,18 +353,6 @@
             this.textBox6.Size = new System.Drawing.Size(324, 20);
             this.textBox6.TabIndex = 0;
             // 
-            // label12
-            // 
-            this.label12.AutoSize = true;
-            this.label12.ForeColor = System.Drawing.SystemColors.ControlDarkDark;
-            this.label12.Location = new System.Drawing.Point(70, 430);
-            this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(715, 26);
-            this.label12.TabIndex = 17;
-            this.label12.Text = "Пароль должен содержать от 8 до 20 символов. \r\nНеобходимо использовать: латиниски" +
-    "е буквы(хотя бы одну в верхнем и нижнем регистре), хотя бы одну цифру, хотя бы о" +
-    "дин спец.символ";
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -360,6 +360,8 @@
             this.BackColor = System.Drawing.SystemColors.Menu;
             this.ClientSize = new System.Drawing.Size(867, 532);
             this.Controls.Add(this.tabControl1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.Name = "Form1";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.Text = "МЕССЕНДЖЕР-РЕГИСТРАЦИЯ/ВХОД";

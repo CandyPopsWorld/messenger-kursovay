@@ -29,6 +29,7 @@ using System.Net.PeerToPeer;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using NpgsqlTypes;
 
 namespace messenger
 {
@@ -314,17 +315,29 @@ namespace messenger
             {
 
             } else {
-                globalMessages = messages;
-                //panel5.Controls.Clear();
-                foreach (Message message in messages)
+                if(messages.Length > globalMessages.Length)
                 {
-                    if (Array.IndexOf(messages, message) == lastMessageIndex)
+                    globalMessages = messages;
+                    //panel5.Controls.Clear();
+                    foreach (Message message in messages)
                     {
-                        // Это последняя итерация
+                        if (Array.IndexOf(messages, message) == lastMessageIndex)
+                        {
+                            // Это последняя итерация
+                            CreateWidgetMessage(message);
+                        }
+
+                    }
+                } else
+                {
+                    globalMessages = messages;
+                    panel5.Controls.Clear();
+                    foreach (Message message in messages)
+                    {
                         CreateWidgetMessage(message);
                     }
-
                 }
+
             }
         }
 
@@ -382,13 +395,16 @@ namespace messenger
             //newMessage.TimeSent = DateTime.Now;
             newMessage.SenderId = user.UniqueId;
             newMessage.ReceiverId = reciever_unique_id;
+            newMessage.MessageChatId = chatId;
+            newMessage.MessageUniqueId = Guid.NewGuid().ToString();
+
 
             newMessage.SendNewMessage(chatId, newMessage);
             //CreateWidgetMessage(newMessage);
             //MessageBox.Show("Сообщение отправлено!");
         }
 
-        public Message[] GetAllMessages(string chatId)
+        public static Message[] GetAllMessages(string chatId)
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
             {
@@ -430,6 +446,23 @@ namespace messenger
             if (isSenderMainUser)
             {
                 messagePanel.BackColor = Color.LightSeaGreen;
+                //КОНТЕКСТНОЕ МЕНЮ ДЛЯ messagePanel
+                // Создание контекстного меню
+                ContextMenuStrip contextMenuStrip = new ContextMenuStrip();
+
+                // Создание элементов меню
+                ToolStripMenuItem deleteMessageItem = new ToolStripMenuItem("Удалить сообщение");
+                deleteMessageItem.Click += (sender, e) => DeleteMessageMenuClick(newMessage.MessageUniqueId, newMessage.MessageChatId);
+
+                //ToolStripMenuItem changeMessageItem = new ToolStripMenuItem("Изменить сообщение");
+                //changeMessageItem.Click += (sender, e) => ChangeMessageMenuClick(newMessage);
+
+                // Добавление элементов в меню
+                contextMenuStrip.Items.Add(deleteMessageItem);
+                //contextMenuStrip.Items.Add(changeMessageItem);
+                messagePanel.ContextMenuStrip = contextMenuStrip;
+
+
             } else
             {
                 messagePanel.BackColor = Color.Gray;
@@ -482,6 +515,25 @@ namespace messenger
             panel5.Controls.Add(messagePanel);
             panel5.AutoScrollPosition = new Point(0, panel5.VerticalScroll.Maximum);
         }
+
+        public void DeleteMessageMenuClick(string MessageUniqueId, string MessageChatId)
+        {
+            DeleteMessage(currentOpenChatId, MessageUniqueId);
+            panel5.Controls.Clear();
+
+            Message[] messages = GetAllMessages(currentOpenChatId);
+            globalMessages = messages;
+            panel5.Controls.Clear();
+            foreach (Message message1 in messages)
+            {
+                CreateWidgetMessage(message1);
+            }
+        }
+        public void ChangeMessageMenuClick(Message message)
+        {
+            MessageBox.Show("Change");
+        }
+
 
         public string GetUserIdChat(string chat_unique_id)
         {
@@ -672,6 +724,8 @@ namespace messenger
         }
         public class Message
         {
+            public string MessageChatId;
+            public string MessageUniqueId { get; set; }
             public string SenderId { get; set; }
             public string ReceiverId { get; set; }
             public string Text { get; set; }
@@ -691,6 +745,33 @@ namespace messenger
                 }
             }
         }
+        public void DeleteMessage(string chatId, string messageUniqueId)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+
+                // Получаем текущий список сообщений
+                Message[] messages = GetAllMessages(chatId);
+
+                // Ищем нужное сообщение и удаляем его из списка
+                var messageToRemove = messages.FirstOrDefault(m => m.MessageUniqueId == messageUniqueId);
+                if (messageToRemove != null)
+                {
+                    messages = messages.Where(m => m.MessageUniqueId != messageUniqueId).ToArray();
+
+                    // Сохраняем изменения в базе данных
+                    using (NpgsqlCommand updateCmd = new NpgsqlCommand("UPDATE chats_messages SET messages = @messages WHERE chat_unique_id = @chatId", conn))
+                    {
+                        updateCmd.Parameters.AddWithValue("messages", NpgsqlTypes.NpgsqlDbType.Jsonb | NpgsqlTypes.NpgsqlDbType.Array, messages);
+                        //updateCmd.Parameters.AddWithValue("chatId", chatId);
+                        updateCmd.Parameters.Add("chatId", NpgsqlDbType.Text).Value = chatId;
+                        updateCmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
 
 
         public class User
