@@ -38,6 +38,7 @@ namespace messenger
         string userId = ConfigurationManager.AppSettings["UserId"];
         static string connectionString = "Server=localhost;Port=5432;Database=messenger;User Id=postgres;Password=regular123;";
         public static User user; // объявляем переменную класса User
+        public static User globalAdditionalUser;
         public static Chats chats; // объявляем переменную класса Chats
         // Создаем таймер и настраиваем его
         Timer timer = new Timer();
@@ -55,6 +56,7 @@ namespace messenger
         {
             InitializeComponent();
             user = new User(); // создаем экземпляр класса User
+            globalAdditionalUser = new User();
             chats = new Chats();
             user.LoadFromDatabase(userId); // вызываем метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
             DisplayUserData(user); // отображаем полученные данные на форме
@@ -635,6 +637,15 @@ namespace messenger
                 // Изменяем текст сообщения и сохраняем изменения в базе данных
                 message.Text = textBox.Text;
                 UpdateMessageText(currentOpenChatId, message.MessageUniqueId, message.Text);
+
+                panel5.Controls.Clear();
+
+                Message[] messages = GetAllMessages(currentOpenChatId);
+                globalMessages = messages;
+                foreach (Message message1 in messages)
+                {
+                    CreateWidgetMessage(message1);
+                }
             }
         }
 
@@ -1163,74 +1174,11 @@ namespace messenger
 
             // Переключаемся в меню чатов
             tabControl1.SelectedTab = tabControl1.TabPages[0];
-            ClickFirstPanelButton(panel3);
+
+            globalAdditionalUser.LoadFromDatabase(unique_id_receiver);
+            ClickToChatWidget(globalAdditionalUser, newChat.Chat_Unique_Id);
 
         }
-
-        private void ClickFirstPanelButton(Panel panel)
-        {
-            // Находим первую вложенную панель
-            Panel firstPanel = panel3.Controls.OfType<Panel>().FirstOrDefault();
-
-            // Если нашли панель, ищем первую кнопку на этой панели и имитируем клик по ней
-            if (firstPanel != null)
-            {
-                System.Windows.Forms.Button firstButton = firstPanel.Controls.OfType<System.Windows.Forms.Button>().FirstOrDefault();
-                if (firstButton != null)
-                {
-                    // отправляем клавишу "Tab", чтобы установить фокус на кнопке
-                    SendKeys.Send("{TAB}");
-
-                    // отправляем клавишу "Enter", чтобы имитировать клик по кнопке
-                    SendKeys.Send("{ENTER}");
-                }
-            }
-        }
-
-        /*private void ClickFirstPanelButton(Panel mainPanel)
-        {
-            // Находим первую панель внутри главной панели
-            Panel firstPanel = panel3.Controls.OfType<Panel>().FirstOrDefault();
-
-            // Если нашли панель, то ищем на ней скрытую кнопку и кликаем на нее
-            if (firstPanel != null)
-            {
-                System.Windows.Forms.Button button = firstPanel.Controls.OfType<System.Windows.Forms.Button>().FirstOrDefault(b => b.Name == "hiddenButton");
-                if (button != null)
-                {
-                    //MessageBox.Show("О ЭТО КНОПКА!");
-                    //button.Focus();
-                    //button.PerformClick(); // Вызываем метод PerformClick() на найденной кнопке
-                    button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                }
-            }
-        }*/
-
-        /*class NativeMethods
-        {
-            [DllImport("user32.dll", CharSet = CharSet.Auto)]
-            public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
-
-            public const int WM_LBUTTONDOWN = 0x0201;
-            public const int WM_LBUTTONUP = 0x0202;
-        }
-
-        private void ClickFirstPanel(Panel panel)
-        {
-            // Находим первый контрол внутри панели
-            Control firstControl = panel.Controls[0];
-
-            MessageBox.Show(firstControl.BackColor.ToString());
-
-            // Если нашли контрол, то выполним на него клик
-            if (firstControl != null)
-            {
-                firstControl.Focus(); // устанавливаем фокус на первый контрол внутри панели
-                NativeMethods.SendMessage(panel.Handle, NativeMethods.WM_LBUTTONDOWN, IntPtr.Zero, IntPtr.Zero); // эмулируем нажатие кнопки мыши на панели
-                NativeMethods.SendMessage(panel.Handle, NativeMethods.WM_LBUTTONUP, IntPtr.Zero, IntPtr.Zero); // эмулируем отпускание кнопки мыши на панели
-            }
-        }*/
-
 
 
         public bool IsChatIdInArray(string whereUserId, string whatUserId)
@@ -1549,6 +1497,7 @@ namespace messenger
             Form1.OpenPhotoAndAddPhotoToPictureBox(pictureBox7);
             user.ChangePhoto(Form1.GetImageBytesFromPictureBox(pictureBox7));
             MessageBox.Show("Фото изменено!");
+            Application.Restart();
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
