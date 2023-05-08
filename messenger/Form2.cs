@@ -45,9 +45,12 @@ namespace messenger
 
         Timer chatTimer = new Timer();
 
+        Timer statusTimer = new Timer();
+
         Message[] globalMessages;
         List<string> globalChats;
         //bool initChats = false;
+        bool globalStatusAdditionalUser = false;
 
 
 
@@ -61,6 +64,7 @@ namespace messenger
             user.LoadFromDatabase(userId); // вызываем метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
             DisplayUserData(user); // отображаем полученные данные на форме
             InitLoadAllChaUser();
+            SetUserOnlineStatus(user.UniqueId, true);
 
             if (chatTimer.Enabled)
             {
@@ -71,6 +75,7 @@ namespace messenger
             chatTimer.Interval = 3000; // 3 секунду
             chatTimer.Start();
         }
+
 
         public void LoadAllChatsUser()
         {
@@ -244,12 +249,39 @@ namespace messenger
             usernameLabel.Font = new Font("Arial", 12, FontStyle.Bold);
             usernameLabel.Location = new Point(50, 10);
 
-            chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
-            usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
-            photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
+            System.Windows.Forms.Label statusLabel = new System.Windows.Forms.Label();
+            if (GetUserOnlineStatus(unique_id))
+            {
+                globalStatusAdditionalUser = true;
+                statusLabel.Text = "(ONLINE)";
+                statusLabel.ForeColor = Color.Green;
+            } else
+            {
+                globalStatusAdditionalUser = false;
+                statusLabel.Text = "(OFFLINE)";
+                statusLabel.ForeColor = Color.Red;
+            }
+            statusLabel.Width = 150;
+            statusLabel.Font = new Font("Arial", 9, FontStyle.Bold);
+            statusLabel.Location = new Point(50, 30);
+            
+            if (statusTimer.Enabled)
+            {
+                statusTimer.Stop();
+            }
+            statusTimer = new Timer();
+            statusTimer.Tick += (sender, e) => status_Tick(sender, e, unique_id, statusLabel);
+            statusTimer.Interval = 1000; // 1 секунду
+            statusTimer.Start();
+
+
+            //chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
+            //usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
+            //photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
 
             chatPanel.Controls.Add(photoBox);
             chatPanel.Controls.Add(usernameLabel);
+            chatPanel.Controls.Add(statusLabel);
             //ПОВТОРЕНИЕ КОДА(КОНЕЦ)
 
             //ДОБАВЛЕНИЕ TEXTBOX И КНОПКИ ДЛЯ ПЕЧАТИ И ОТПРАВКИ СООБЩЕНИЙ
@@ -259,14 +291,15 @@ namespace messenger
             messageTextBox.Multiline = true;
             messageTextBox.MaxLength = 4096;
             messageTextBox.Width = 455;
-            messageTextBox.Height = 54;
+            messageTextBox.Height = 74;
             messageTextBox.Location = new Point(10, 0);
+            messageTextBox.ScrollBars= ScrollBars.Both;
 
 
             System.Windows.Forms.Label countSymbol = new System.Windows.Forms.Label();
             countSymbol.Text = "0/4096";
             countSymbol.Width = 300;
-            countSymbol.Location = new Point(423, 60);
+            countSymbol.Location = new Point(423,80);
 
             messageTextBox.TextChanged += (sender, e) => countSymbol.Text = messageTextBox.Text.Length + "/4096";
 
@@ -296,6 +329,28 @@ namespace messenger
             timer.Interval = 1000; // 1 секунду
             timer.Start();
         }
+
+        private void status_Tick(object sender, EventArgs e, string additionalUniqueId, System.Windows.Forms.Label statusLabel)
+        {
+            bool status = GetUserOnlineStatus(additionalUniqueId);
+
+            if(status == globalStatusAdditionalUser)
+            {
+                return;
+            }
+            globalStatusAdditionalUser = status;
+
+            if (status)
+            {
+                statusLabel.Text = "(ONLINE)";
+                statusLabel.ForeColor = Color.Green;
+            } else
+            {
+                statusLabel.Text = "(OFFLINE)";
+                statusLabel.ForeColor = Color.Red;
+            }
+        }
+
 
         private void timer_Tick(object sender, EventArgs e, string chatId)
         {
@@ -363,6 +418,44 @@ namespace messenger
 
             }
         }
+        public void SetUserOnlineStatus(string userUniqueId, bool isOnline)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+
+                using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users_status SET isOnline = @isOnline WHERE user_unique_id = @userUniqueId", conn))
+                {
+                    cmd.Parameters.AddWithValue("isOnline", isOnline);
+                    cmd.Parameters.AddWithValue("userUniqueId", userUniqueId);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+        public bool GetUserOnlineStatus(string userUniqueId)
+        {
+            bool isOnline = false;
+
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+
+                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT isOnline FROM users_status WHERE user_unique_id = @userUniqueId", conn))
+                {
+                    cmd.Parameters.AddWithValue("userUniqueId", userUniqueId);
+
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        isOnline = (bool)result;
+                    }
+                }
+            }
+
+            return isOnline;
+        }
+
+
 
         public static async Task<DateTime> GetNetworkTime()
         {
@@ -595,6 +688,7 @@ namespace messenger
             textBox.MaxLength = 4096;
             textBox.Location = new Point(10, 30);
             textBox.Size = new Size(400, 200);
+            textBox.ScrollBars = ScrollBars.Both;
             textBox.TextChanged += (sender, e) =>
             {
                 label.Text = "Осталось символов: " + (4096 - textBox.Text.Length);
@@ -702,7 +796,7 @@ namespace messenger
         public void DisplayUserData(User user)
         {
             // отображаем данные пользователя на форме в табе чат
-            label1.Text = user.Username;
+            label1.Text = user.Username + "(ВЫ)";
 
             if(user.Age == 0)
             {
@@ -1168,7 +1262,7 @@ namespace messenger
             string messageCreate = "(" + user.Username + " создал чат)";
             await CreateMessage(messageCreate, unique_id_receiver, newChat.Chat_Unique_Id);
 
-            MessageBox.Show("Чат создан!");
+            //MessageBox.Show("Чат создан!");
             
             LoadAllChatsUser();
 
@@ -1556,6 +1650,11 @@ namespace messenger
                     this.Text = "НАСТРОЙКИ";
                     break;
             }
+        }
+
+        private void Form2_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            SetUserOnlineStatus(user.UniqueId, false);
         }
     }
 }

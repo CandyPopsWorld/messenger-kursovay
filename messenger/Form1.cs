@@ -219,6 +219,7 @@ namespace messenger
                     cmd.Parameters.AddWithValue("unique_id", unique_id);
                     cmd.ExecuteNonQuery();
                 }
+                InitUserOnlineStatus(unique_id, false);
             }
 
             Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -226,10 +227,25 @@ namespace messenger
             config.AppSettings.Settings["UserId"].Value = unique_id;
             config.Save(ConfigurationSaveMode.Modified);
 
-
             MessageBox.Show("Регистрация успешна!");
             Application.Restart();
         }
+
+        public void InitUserOnlineStatus(string userUniqueId, bool isOnline)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+
+                using (NpgsqlCommand cmd = new NpgsqlCommand("INSERT INTO users_status (user_unique_id, isonline) VALUES (@userUniqueId, @isOnline)", conn))
+                {
+                    cmd.Parameters.AddWithValue("userUniqueId", userUniqueId);
+                    cmd.Parameters.AddWithValue("isOnline", isOnline);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
         public static byte[] GetImageBytesFromPictureBox(PictureBox pictureBox)
         {
             if (pictureBox.Image == null) return null;
