@@ -47,14 +47,14 @@ namespace messenger
 
         Timer statusTimer = new Timer();
 
-        Message[] globalMessages;
-        List<string> globalChats;
+        static Message[] globalMessages;
+        static List<string> globalChats;
         //bool initChats = false;
         bool globalStatusAdditionalUser = false;
 
 
 
-        public string currentOpenChatId = "";
+        public static string currentOpenChatId = "";
         public Form2()
         {
             InitializeComponent();
@@ -69,6 +69,7 @@ namespace messenger
             if (chatTimer.Enabled)
             {
                 timer.Stop();
+                chatTimer.Stop();
             }
             chatTimer = new Timer();
             chatTimer.Tick += (sender, e) => LoadAllChatsUser();
@@ -117,6 +118,7 @@ namespace messenger
             {
                 //panel3.Controls.Clear();
                 string additionalUserId = GetUserIdChat(chatId);
+                
                 User additionalUser = new User();
                 additionalUser.LoadFromDatabase(additionalUserId);
                 CreateNewChatPanel(additionalUser, chatId);
@@ -139,21 +141,24 @@ namespace messenger
             chatPanel.Location = new Point(13, panel3.Controls.Count * chatPanel.Height);
             chatPanel.BackColor = Color.Gray;
 
-            System.Windows.Forms.Button hiddenButton = new System.Windows.Forms.Button();
+            /*System.Windows.Forms.Button hiddenButton = new System.Windows.Forms.Button();
             hiddenButton.Visible = false;
             hiddenButton.Name = "hiddenButton";
-            hiddenButton.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);
-            
-
+            hiddenButton.Click += (sender, e) => ClickToChatWidget(additionalUser, chatId);*/
 
             PictureBox photoBox = new PictureBox();
-            photoBox.Width = 44;
-            photoBox.Height = 52;
-            photoBox.SizeMode = PictureBoxSizeMode.StretchImage;
-            using (MemoryStream memoryStream = new MemoryStream(photo))
+            
+            if(photo != null)
             {
-                Image image = Image.FromStream(memoryStream);
-                photoBox.Image = image;
+                photoBox.Width = 44;
+                photoBox.Height = 52;
+                photoBox.SizeMode = PictureBoxSizeMode.StretchImage;
+                using (MemoryStream memoryStream = new MemoryStream(photo))
+                {
+                    Image image = Image.FromStream(memoryStream);
+                    photoBox.Image = image;
+                }
+                chatPanel.Controls.Add(photoBox);
             }
 
             System.Windows.Forms.Label usernameLabel = new System.Windows.Forms.Label();
@@ -173,11 +178,24 @@ namespace messenger
             photoBox.MouseEnter += (sender, e) => panel3.Focus();
             photoBox.MouseLeave += (sender, e) => this.ActiveControl = null;
 
-
-            chatPanel.Controls.Add(photoBox);
             chatPanel.Controls.Add(usernameLabel);
-            chatPanel.Controls.Add(hiddenButton);
+            //chatPanel.Controls.Add(hiddenButton);
             panel3.Controls.Add(chatPanel);
+        }
+
+        public void OutChatIsEmpty(Message[] messages)
+        {
+            if (messages.Length == 0 || panel5.Controls.Count == 0)
+            {
+                System.Windows.Forms.Label notFoundMessages = new System.Windows.Forms.Label();
+                notFoundMessages.Text = "ЧАТ ПУСТОЙ! ВЫ МОЖЕТЕ НАПИСАТЬ ПЕРВОЕ СООБЩЕНИЕ";
+                notFoundMessages.Width = 550;
+                notFoundMessages.Font = new Font("Arial", 12, FontStyle.Bold);
+                notFoundMessages.Location = new Point(30, 100);
+                notFoundMessages.Name = "notFoundMessages";
+                notFoundMessages.ForeColor = Color.Gray;
+                panel5.Controls.Add(notFoundMessages);
+            }
         }
 
         public void ClickToChatWidget(User additionalUser, string chatId)
@@ -195,28 +213,13 @@ namespace messenger
 
             Message[] messages = GetAllMessages(chatId);
             globalMessages = messages;
+
             foreach (Message message in messages)
             {
                 CreateWidgetMessage(message);
             }
-            /*if (messages.Length > 0)
-            {
-                foreach (Message message in messages)
-                {
-                    CreateWidgetMessage(message);
-                }
-            } else
-            {
-                foreach (Message message in messages)
-                {
-                    CreateWidgetMessage(message);
-                }
-                System.Windows.Forms.Label label = new System.Windows.Forms.Label();
-                label.Width = 300;
-                label.Text = "Чат еще пустой!";
-                panel5.Controls.Add(label);
-            }*/
 
+            OutChatIsEmpty(messages);
 
             //ПОВТОРЕНИЕ КОДА(НАЧАЛО)
             string username = additionalUser.Username;
@@ -233,15 +236,25 @@ namespace messenger
             chatPanel.Location = new Point(13, 10);
             chatPanel.BackColor = Color.Gray;
 
-            PictureBox photoBox = new PictureBox();
-            photoBox.Width = 44;
-            photoBox.Height = 52;
-            photoBox.SizeMode = PictureBoxSizeMode.StretchImage;
-            using (MemoryStream memoryStream = new MemoryStream(photo))
+            System.Windows.Forms.Button downloadChatHistoryBtn = new System.Windows.Forms.Button();
+            downloadChatHistoryBtn.Text = "Скачать историю сообщений!";
+            downloadChatHistoryBtn.Click += (sender, e) => DownloadChooseFolder(chatId);
+            downloadChatHistoryBtn.Width = 210;
+            downloadChatHistoryBtn.Height = 30;
+            downloadChatHistoryBtn.Location = new Point(380, 50);
+
+            System.Windows.Forms.Button deleteChatBtn = new System.Windows.Forms.Button();
+            if (unique_id == null)
             {
-                Image image = Image.FromStream(memoryStream);
-                photoBox.Image = image;
+                deleteChatBtn.Text = "Удалить чат!";
+                deleteChatBtn.Click += (sender, e) => DeleteChatDialog(chatId);
+                deleteChatBtn.Width = 210;
+                deleteChatBtn.Height = 30;
+                deleteChatBtn.ForeColor = Color.Red;
+                deleteChatBtn.Location = new Point(380, 20);
             }
+
+            PictureBox photoBox = new PictureBox();
 
             System.Windows.Forms.Label usernameLabel = new System.Windows.Forms.Label();
             usernameLabel.Text = username;
@@ -250,74 +263,108 @@ namespace messenger
             usernameLabel.Location = new Point(50, 10);
 
             System.Windows.Forms.Label statusLabel = new System.Windows.Forms.Label();
-            if (GetUserOnlineStatus(unique_id))
+
+            if (unique_id != null)
             {
-                globalStatusAdditionalUser = true;
-                statusLabel.Text = "(ONLINE)";
-                statusLabel.ForeColor = Color.Green;
-            } else
-            {
-                globalStatusAdditionalUser = false;
-                statusLabel.Text = "(OFFLINE)";
-                statusLabel.ForeColor = Color.Red;
+
+                photoBox.Width = 44;
+                photoBox.Height = 52;
+                photoBox.SizeMode = PictureBoxSizeMode.StretchImage;
+                using (MemoryStream memoryStream = new MemoryStream(photo))
+                {
+                    Image image = Image.FromStream(memoryStream);
+                    photoBox.Image = image;
+                }
+                chatPanel.Controls.Add(photoBox);
+
+                //статус
+                if (GetUserOnlineStatus(unique_id))
+                {
+                    globalStatusAdditionalUser = true;
+                    statusLabel.Text = "(ONLINE)";
+                    statusLabel.ForeColor = Color.Green;
+                }
+                else
+                {
+                    globalStatusAdditionalUser = false;
+                    statusLabel.Text = "(OFFLINE)";
+                    statusLabel.ForeColor = Color.Red;
+                }
+                statusLabel.Width = 150;
+                statusLabel.Font = new Font("Arial", 9, FontStyle.Bold);
+                statusLabel.Location = new Point(50, 30);
+                chatPanel.Controls.Add(statusLabel);
+
+                if (statusTimer.Enabled)
+                {
+                    statusTimer.Stop();
+                }
+                statusTimer = new Timer();
+                statusTimer.Tick += (sender, e) => status_Tick(sender, e, unique_id, statusLabel);
+                statusTimer.Interval = 1000; // 1 секунду
+                statusTimer.Start();
             }
-            statusLabel.Width = 150;
-            statusLabel.Font = new Font("Arial", 9, FontStyle.Bold);
-            statusLabel.Location = new Point(50, 30);
-            
-            if (statusTimer.Enabled)
-            {
-                statusTimer.Stop();
-            }
-            statusTimer = new Timer();
-            statusTimer.Tick += (sender, e) => status_Tick(sender, e, unique_id, statusLabel);
-            statusTimer.Interval = 1000; // 1 секунду
-            statusTimer.Start();
 
-
-            //chatPanel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
-            //usernameLabel.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
-            //photoBox.Click += (sender, e) => ClickToChatWidget(additionalUser, unique_id);
-
-            chatPanel.Controls.Add(photoBox);
             chatPanel.Controls.Add(usernameLabel);
-            chatPanel.Controls.Add(statusLabel);
+            
+
             //ПОВТОРЕНИЕ КОДА(КОНЕЦ)
 
             //ДОБАВЛЕНИЕ TEXTBOX И КНОПКИ ДЛЯ ПЕЧАТИ И ОТПРАВКИ СООБЩЕНИЙ
             panel11.Controls.Clear();
 
+            
+            
             System.Windows.Forms.TextBox messageTextBox = new System.Windows.Forms.TextBox();
-            messageTextBox.Multiline = true;
-            messageTextBox.MaxLength = 4096;
-            messageTextBox.Width = 455;
-            messageTextBox.Height = 74;
-            messageTextBox.Location = new Point(10, 0);
-            messageTextBox.ScrollBars= ScrollBars.Both;
-
-
             System.Windows.Forms.Label countSymbol = new System.Windows.Forms.Label();
-            countSymbol.Text = "0/4096";
-            countSymbol.Width = 300;
-            countSymbol.Location = new Point(423,80);
-
-            messageTextBox.TextChanged += (sender, e) => countSymbol.Text = messageTextBox.Text.Length + "/4096";
-
             System.Windows.Forms.Button write_user = new System.Windows.Forms.Button();
-            write_user.Text = "Отправить";
-            write_user.Click += (sender, e) => SendMessageToUser(messageTextBox, unique_id, chatId);
-            write_user.Width = 142;
-            write_user.Height = 54;
-            write_user.Location = new Point(480, 0);
+            System.Windows.Forms.Label userDeleteLabel = new System.Windows.Forms.Label();
+            if (unique_id != null)
+            {
+                messageTextBox.Multiline = true;
+                messageTextBox.MaxLength = 4096;
+                messageTextBox.Width = 455;
+                messageTextBox.Height = 74;
+                messageTextBox.Location = new Point(10, 0);
+                messageTextBox.ScrollBars = ScrollBars.Both;
 
-            panel11.Controls.Add(messageTextBox);
-            panel11.Controls.Add(write_user);
-            panel11.Controls.Add(countSymbol);
+                countSymbol.Text = "0/4096";
+                countSymbol.Width = 300;
+                countSymbol.Location = new Point(423, 80);
+
+                messageTextBox.TextChanged += (sender, e) => countSymbol.Text = messageTextBox.Text.Length + "/4096";
+
+                write_user.Text = "Отправить";
+                write_user.Click += (sender, e) => SendMessageToUser(messageTextBox, unique_id, chatId);
+                write_user.Width = 142;
+                write_user.Height = 54;
+                write_user.Location = new Point(480, 0);
+
+                panel11.Controls.Add(messageTextBox);
+                panel11.Controls.Add(write_user);
+                panel11.Controls.Add(countSymbol);
+            } else
+            {
+                userDeleteLabel.Text = "(Пользователь удалил свой аккаунт! Вы больше не можете ему написать!)";
+                userDeleteLabel.Width = 700;
+                userDeleteLabel.Font = new Font("Arial", 11, FontStyle.Bold);
+                userDeleteLabel.ForeColor = Color.Red;
+                userDeleteLabel.Location = new Point(40, 40);
+
+                panel11.Controls.Add(userDeleteLabel);
+            }
+
+
 
             //
             panel2.Controls.Clear();
             panel2.Controls.Add(chatPanel);
+            panel2.Controls.Add(downloadChatHistoryBtn);
 
+            if(unique_id == null)
+            {
+                panel2.Controls.Add(deleteChatBtn);
+            }
 
 
             //ListenForNewMessages(chatId);
@@ -359,8 +406,16 @@ namespace messenger
             int lastMessageIndex = messages.Length - 1;
 
             bool equal = true;
+
+            if(messages.Length > 0 && panel5.Controls.Find("notFoundMessages", true).Length > 0){
+                panel5.Controls.Clear();
+            }
            
             if(messages.Length == globalMessages.Length) { 
+                if(messages.Length == 0)
+                {
+                    OutChatIsEmpty(messages);
+                }
                 equal = true;
             } else
             {
@@ -493,6 +548,10 @@ namespace messenger
 
         async public void SendMessageToUser(System.Windows.Forms.TextBox messageTextBox, string reciever_unique_id, string chatId)
         {
+            if(panel5.Controls.Find("notFoundMessages", true).Length > 0)
+            {
+                panel5.Controls.Clear();
+            }
             string message = messageTextBox.Text;
             if(message.Length > 0)
             {
@@ -529,8 +588,15 @@ namespace messenger
                 {
                     cmd.Parameters.AddWithValue("chatId", chatId);
                     string messagesJson = (string)cmd.ExecuteScalar();
-                    Message[] messages = JsonConvert.DeserializeObject<Message[]>(messagesJson);
-                    return messages;
+                    if(messagesJson != null)
+                    {
+                        Message[] messages = JsonConvert.DeserializeObject<Message[]>(messagesJson);
+                        return messages;
+                    } else
+                    {
+                        return new Message[0];
+                    }
+
                 }
             }
         }
@@ -768,7 +834,7 @@ namespace messenger
             
         }
 
-        public List<string> GetAllChatsIds()
+        public static List<string> GetAllChatsIds()
         {
             List<string> chats = new List<string>();
             using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
@@ -901,6 +967,57 @@ namespace messenger
             }
         }
 
+        public void DeleteChatDialog(string chatId)
+        {
+            DialogResult result = MessageBox.Show("Вы действительно хотите удалить чат с этим пользователем? Будьте осторожны вы не сможете его восстановить!", "Вы действительно хотите удалить чат?", MessageBoxButtons.OKCancel);
+            if (result == DialogResult.OK)
+            {
+                DeleteChat(chatId, user.UniqueId);
+                Application.Restart();
+            }
+            else if (result == DialogResult.Cancel)
+            {
+            }
+        }
+
+        public static void DeleteChat(string chatId, string userUniqueId)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                // Удаляем строку из таблицы chats
+                using (NpgsqlCommand cmd = new NpgsqlCommand("DELETE FROM chats WHERE chat_unique_id = @chatId", conn))
+                {
+                    cmd.Parameters.AddWithValue("chatId", chatId);
+                    cmd.ExecuteNonQuery();
+                }
+                // Удаляем строки из таблицы chats_messages
+                using (NpgsqlCommand cmd = new NpgsqlCommand("DELETE FROM chats_messages WHERE chat_unique_id = @chatId", conn))
+                {
+                    cmd.Parameters.AddWithValue("chatId", chatId);
+                    cmd.ExecuteNonQuery();
+                }
+                // Получаем данные пользователя из таблицы users
+                User user = new User();
+                user.LoadFromDatabase(userUniqueId);
+                // Удаляем chatId из массива chats в записи пользователя
+                List<string> chatsIds = GetAllChatsIds();
+                if (chatsIds.Contains(chatId))
+                {
+                    chatsIds.Remove(chatId);
+                    globalChats.Remove(chatId);
+                    globalMessages = null;
+                    currentOpenChatId = "";
+                    using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users SET chats = @chats WHERE unique_id = @userUniqueId", conn))
+                    {
+                        cmd.Parameters.AddWithValue("chats", chatsIds.ToArray());
+                        cmd.Parameters.AddWithValue("userUniqueId", userUniqueId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
         public class Chats
         {
             private List<Chat> _chats;
@@ -953,6 +1070,48 @@ namespace messenger
                 }
             }
         }
+
+        public void DownloadChooseFolder(string chatId)
+        {
+            var folderDialog = new FolderBrowserDialog();
+            if (folderDialog.ShowDialog() == DialogResult.OK)
+            {
+                DownloadChatMessages(chatId, folderDialog.SelectedPath + "\\messages-" + chatId.Substring(0, 6) + ".txt");
+            }
+        }
+
+        public static void DownloadChatMessages(string chatId, string filePath)
+        {
+            // Получаем все сообщения чата
+            Message[] messages = GetAllMessages(chatId);
+
+            // Создаем поток для записи в файл
+            using (StreamWriter writer = new StreamWriter(filePath))
+            {
+                // Проходимся по всем сообщениям чата
+                foreach (Message message in messages)
+                {
+                    // Загружаем данные об отправителе
+                    User sender = new User();
+                    sender.LoadFromDatabase(message.SenderId);
+
+                    // Загружаем данные о получателе
+                    User receiver = new User();
+                    receiver.LoadFromDatabase(message.ReceiverId);
+
+                    // Записываем в файл информацию об отправителе, сообщении и времени отправки
+                    writer.WriteLine($"{sender.Username} {message.TimeSent}");
+                    writer.WriteLine(message.Text);
+                    writer.WriteLine();
+
+                    // Делаем то же самое для получателя
+                    /*writer.WriteLine($"{receiver.Username} {message.TimeSent}");
+                    writer.WriteLine(message.Text);
+                    writer.WriteLine();*/
+                }
+            }
+        }
+
         public void DeleteMessage(string chatId, string messageUniqueId)
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
@@ -1034,6 +1193,14 @@ namespace messenger
                             this.Photo = (byte[])reader["photo"];
                             this.UniqueId = reader.GetString(4);
                             this.RegistrationDate = reader.GetDateTime(5);
+                        } else
+                        {
+                            this.Username = "(Аккаунт удален)";
+                            this.Age = 0; 
+                            this.Email = null;
+                            this.Photo = null;
+                            this.UniqueId = null;
+                            this.RegistrationDate = DateTime.MinValue;
                         }
                     }
                 }
@@ -1238,7 +1405,8 @@ namespace messenger
             //Проверка существует ли уже чат между пользователями
             if(IsChatIdInArray(user.UniqueId, unique_id_receiver))
             {
-                MessageBox.Show("Чат между вами уже существует!");
+                globalAdditionalUser.LoadFromDatabase(unique_id_receiver);
+                ClickToChatWidget(globalAdditionalUser, GetChatId(user.UniqueId, unique_id_receiver));
                 tabControl1.SelectedTab = tabControl1.TabPages[0];
                 return;
             }
@@ -1292,6 +1460,28 @@ namespace messenger
                     else
                     {
                         return Convert.ToInt32(result) > 0;
+                    }
+                }
+            }
+        }
+
+        public string GetChatId(string user1Id, string user2Id)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT chat_unique_id FROM chats WHERE (user1_id = @user1_id AND user2_id = @user2_id) OR (user1_id = @user2_id AND user2_id = @user1_id)", conn))
+                {
+                    cmd.Parameters.AddWithValue("user1_id", user1Id);
+                    cmd.Parameters.AddWithValue("user2_id", user2Id);
+                    var result = cmd.ExecuteScalar();
+                    if (Convert.IsDBNull(result))
+                    {
+                        return null;
+                    }
+                    else
+                    {
+                        return result.ToString();
                     }
                 }
             }
