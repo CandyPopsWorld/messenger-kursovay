@@ -1,97 +1,48 @@
 ﻿using Npgsql;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.IO;
-using System.Reflection.Emit;
-using System.Runtime.Remoting.Contexts;
-using System.Data.Entity;
-using static messenger.Form2;
-using MailKit.Search;
-using MailKit;
-using System.Runtime.Remoting.Messaging;
-using MimeKit;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
-using System.Xml;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Net.PeerToPeer;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.InteropServices;
-using NpgsqlTypes;
 
 namespace messenger
 {
     public partial class Form2 : Form
     {
-        string userId = ConfigurationManager.AppSettings["UserId"];
-        static string connectionString = "Server=localhost;Port=5432;Database=messenger;User Id=postgres;Password=regular123;";
-        public static User user; // объявляем переменную класса User
-        public static User globalAdditionalUser;
-        public static Chats chats; // объявляем переменную класса Chats
-        // Создаем таймер и настраиваем его
-        Timer timer = new Timer();
-
-        Timer chatTimer = new Timer();
-
-        Timer statusTimer = new Timer();
-
-        static Message[] globalMessages;
-        static List<string> globalChats;
-        //bool initChats = false;
-        bool globalStatusAdditionalUser = false;
-        //string[] hiddenChats;
-        static List<string> hiddenChats;
-
-        public static string currentOpenChatId = "";
         public Form2()
         {
             InitializeComponent();
+            GlobalData.user = new UserManager.User();
+            GlobalData.globalAdditionalUser = new UserManager.User();
+            GlobalData.chats = new ChatManager.Chats();
+            GlobalData.user.LoadFromDatabase(GlobalData.userId); // Отображение метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
+            GlobalData.hiddenChats = ChatManager.GetHiddenChats();
 
-            user = new User(); // создаем экземпляр класса User
-            globalAdditionalUser = new User();
-            chats = new Chats();
-            user.LoadFromDatabase(userId); // вызываем метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
-
-            hiddenChats = GetHiddenChats();
-
-            DisplayUserData(user); // отображаем полученные данные на форме
+            DisplayUserData(GlobalData.user); // Отображение полученные данные на форме
             InitLoadAllChaUser();
-            SetUserOnlineStatus(user.UniqueId, true);
-
+            UserManager.SetUserOnlineStatus(GlobalData.user.UniqueId, true);
             DisplayHiddenChats();
 
 
-            if (chatTimer.Enabled)
+            if (GlobalData.chatTimer.Enabled)
             {
-                timer.Stop();
-                chatTimer.Stop();
+                GlobalData.timer.Stop();
+                GlobalData.chatTimer.Stop();
             }
-            chatTimer = new Timer();
-            chatTimer.Tick += (sender, e) => LoadAllChatsUser();
-            chatTimer.Interval = 3000; // 3 секунду
-            chatTimer.Start();
+            GlobalData.chatTimer = new Timer();
+            GlobalData.chatTimer.Tick += (sender, e) => LoadAllChatsUser();
+            GlobalData.chatTimer.Interval = 3000;
+            GlobalData.chatTimer.Start();
         }
 
         public void DisplayHiddenChats()
         {
-            if (hiddenChats.Count > 0)
+            if (GlobalData.hiddenChats.Count > 0)
             {
-                foreach (string hiddenChatId in hiddenChats)
+                foreach (string hiddenChatId in GlobalData.hiddenChats)
                 {
-                    string additionalUserId = GetUserIdChat(hiddenChatId);
-                    User additionalUser = new User();
+                    string additionalUserId = UserManager.GetUserIdChat(hiddenChatId);
+                    UserManager.User additionalUser = new UserManager.User();
                     additionalUser.LoadFromDatabase(additionalUserId);
                     CreateHiddenChatWidget(additionalUser, hiddenChatId);
 
@@ -108,7 +59,7 @@ namespace messenger
             }
         }
 
-        public void CreateHiddenChatWidget(User additionalUser, string hiddenChatId)
+        public void CreateHiddenChatWidget(UserManager.User additionalUser, string hiddenChatId)
         {
             string username = additionalUser.Username;
             byte[] photo = additionalUser.Photo;
@@ -133,7 +84,7 @@ namespace messenger
 
             System.Windows.Forms.Button showChatBtn = new System.Windows.Forms.Button();
             showChatBtn.Text = "Показать чат";
-            showChatBtn.Click += (sender, e) => RemoveHiddenChat(hiddenChatId);
+            showChatBtn.Click += (sender, e) => ChatManager.RemoveHiddenChat(hiddenChatId);
 
             System.Windows.Forms.Label nameLabel = new System.Windows.Forms.Label();
             nameLabel.Text = username;
@@ -156,41 +107,25 @@ namespace messenger
             panel6.Controls.Add(hiddenChatPanel);
         }
 
-        public void RemoveHiddenChat(string hiddenChatId)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-
-                using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users SET hiddenChats = array_remove(hiddenChats, @chatId) WHERE unique_id = @uniqueId", conn))
-                {
-                    cmd.Parameters.AddWithValue("chatId", NpgsqlTypes.NpgsqlDbType.Text, hiddenChatId);
-                    cmd.Parameters.AddWithValue("uniqueId", user.UniqueId);
-                    cmd.ExecuteNonQuery();
-                }
-            }
-            Application.Restart();
-        }
-
         public void LoadAllChatsUser()
         {
-            List<string> chatsIds = GetAllChatsIds();
+            List<string> chatsIds = ChatManager.GetAllChatsIds();
             chatsIds.Reverse();
 
-            if (chatsIds.Count == globalChats.Count)
+            if (chatsIds.Count == GlobalData.globalChats.Count)
             {
                 return;
             }
             panel3.Controls.Clear();
-            globalChats = chatsIds;
+            GlobalData.globalChats = chatsIds;
             foreach (string chatId in chatsIds)
             {
-                bool isChatIdExist = hiddenChats.Contains(chatId);
+                bool isChatIdExist = GlobalData.hiddenChats.Contains(chatId);
                 if (!isChatIdExist)
                 {
                     //panel3.Controls.Clear();
-                    string additionalUserId = GetUserIdChat(chatId);
-                    User additionalUser = new User();
+                    string additionalUserId = UserManager.GetUserIdChat(chatId);
+                    UserManager.User additionalUser = new UserManager.User();
                     additionalUser.LoadFromDatabase(additionalUserId);
                     CreateNewChatPanel(additionalUser, chatId);
                 }
@@ -199,16 +134,16 @@ namespace messenger
 
         public void InitLoadAllChaUser()
         {
-            List<string> chatsIds = GetAllChatsIds();
+            List<string> chatsIds = ChatManager.GetAllChatsIds();
             chatsIds.Reverse();
-            globalChats = chatsIds;
+            GlobalData.globalChats = chatsIds;
 
             bool equalsHidden = false;
             int countEqualsHiddenAndChats = 0;
             
             foreach (var chatId in chatsIds)
             {
-                foreach (var hiddenId in hiddenChats)
+                foreach (var hiddenId in GlobalData.hiddenChats)
                 {
                     if(chatId == hiddenId)
                     {
@@ -243,19 +178,19 @@ namespace messenger
             }
             foreach (string chatId in chatsIds)
             {
-                bool isChatIdExist = hiddenChats.Contains(chatId);
+                bool isChatIdExist = GlobalData.hiddenChats.Contains(chatId);
                 if (!isChatIdExist)
                 {
-                string additionalUserId = GetUserIdChat(chatId);
-                
-                User additionalUser = new User();
+                string additionalUserId = UserManager.GetUserIdChat(chatId);
+
+                    UserManager.User additionalUser = new UserManager.User();
                 additionalUser.LoadFromDatabase(additionalUserId);
                 CreateNewChatPanel(additionalUser, chatId);
                 }
             }
         }
 
-        public void CreateNewChatPanel(User additionalUser, string chatId)
+        public void CreateNewChatPanel(UserManager.User additionalUser, string chatId)
         {
             string username = additionalUser.Username;
             int age = additionalUser.Age;
@@ -313,7 +248,7 @@ namespace messenger
             panel3.Controls.Add(chatPanel);
         }
 
-        public void OutChatIsEmpty(Message[] messages)
+        public void OutChatIsEmpty(MessageManager.Message[] messages)
         {
             if (messages.Length == 0 || panel5.Controls.Count == 0)
             {
@@ -328,23 +263,23 @@ namespace messenger
             }
         }
 
-        public void ClickToChatWidget(User additionalUser, string chatId)
+        public void ClickToChatWidget(UserManager.User additionalUser, string chatId)
         {
-            if(currentOpenChatId == chatId)
+            if(GlobalData.currentOpenChatId == chatId)
             {
                 MessageBox.Show("Данный чат уже открыт!");
                 return;
             }
 
 
-            currentOpenChatId = chatId;
+            GlobalData.currentOpenChatId = chatId;
 
             panel5.Controls.Clear();
 
-            Message[] messages = GetAllMessages(chatId);
-            globalMessages = messages;
+            MessageManager.Message[] messages = MessageManager.GetAllMessages(chatId);
+            GlobalData.globalMessages = messages;
 
-            foreach (Message message in messages)
+            foreach (MessageManager.Message message in messages)
             {
                 CreateWidgetMessage(message);
             }
@@ -368,14 +303,14 @@ namespace messenger
 
             System.Windows.Forms.Button downloadChatHistoryBtn = new System.Windows.Forms.Button();
             downloadChatHistoryBtn.Text = "Скачать историю сообщений!";
-            downloadChatHistoryBtn.Click += (sender, e) => DownloadChooseFolder(chatId);
+            downloadChatHistoryBtn.Click += (sender, e) => ChatManager.DownloadChooseFolder(chatId);
             downloadChatHistoryBtn.Width = 210;
             downloadChatHistoryBtn.Height = 30;
             downloadChatHistoryBtn.Location = new Point(380, 50);
 
             System.Windows.Forms.Button hideChatBtn = new System.Windows.Forms.Button();
             hideChatBtn.Text = "Скрыть чат";
-            hideChatBtn.Click += (sender, e) => HideChat(chatId, additionalUser.Username);
+            hideChatBtn.Click += (sender, e) => ChatManager.HideChat(chatId, additionalUser.Username);
             hideChatBtn.Width = 210;
             hideChatBtn.Height = 30;
             hideChatBtn.Location = new Point(380, 20);
@@ -384,7 +319,7 @@ namespace messenger
             if (unique_id == null)
             {
                 deleteChatBtn.Text = "Удалить чат!";
-                deleteChatBtn.Click += (sender, e) => DeleteChatDialog(chatId);
+                deleteChatBtn.Click += (sender, e) => ChatManager.DeleteChatDialog(chatId);
                 deleteChatBtn.Width = 210;
                 deleteChatBtn.Height = 30;
                 deleteChatBtn.ForeColor = Color.Red;
@@ -415,15 +350,15 @@ namespace messenger
                 chatPanel.Controls.Add(photoBox);
 
                 //статус
-                if (GetUserOnlineStatus(unique_id))
+                if (UserManager.GetUserOnlineStatus(unique_id))
                 {
-                    globalStatusAdditionalUser = true;
+                    GlobalData.globalStatusAdditionalUser = true;
                     statusLabel.Text = "(ONLINE)";
                     statusLabel.ForeColor = Color.Green;
                 }
                 else
                 {
-                    globalStatusAdditionalUser = false;
+                    GlobalData.globalStatusAdditionalUser = false;
                     statusLabel.Text = "(OFFLINE)";
                     statusLabel.ForeColor = Color.Red;
                 }
@@ -432,14 +367,14 @@ namespace messenger
                 statusLabel.Location = new Point(50, 30);
                 chatPanel.Controls.Add(statusLabel);
 
-                if (statusTimer.Enabled)
+                if (GlobalData.statusTimer.Enabled)
                 {
-                    statusTimer.Stop();
+                    GlobalData.statusTimer.Stop();
                 }
-                statusTimer = new Timer();
-                statusTimer.Tick += (sender, e) => status_Tick(sender, e, unique_id, statusLabel);
-                statusTimer.Interval = 1000; // 1 секунду
-                statusTimer.Start();
+                GlobalData.statusTimer = new Timer();
+                GlobalData.statusTimer.Tick += (sender, e) => status_Tick(sender, e, unique_id, statusLabel);
+                GlobalData.statusTimer.Interval = 1000; // 1 секунду
+                GlobalData.statusTimer.Start();
             }
 
             chatPanel.Controls.Add(usernameLabel);
@@ -506,93 +441,24 @@ namespace messenger
 
 
             //ListenForNewMessages(chatId);
-            if (timer.Enabled) {
-                timer.Stop();
+            if (GlobalData.timer.Enabled) {
+                GlobalData.timer.Stop();
             }
-            timer = new Timer();
-            timer.Tick += (sender, e) => timer_Tick(sender, e, chatId);
-            timer.Interval = 1000; // 1 секунду
-            timer.Start();
-        }
-
-        public void HideChat(string chatId, string additionalUsername)
-        {
-            AddHiddenChat(chatId);
-            MessageBox.Show("Чат скрыт!");
-            Application.Restart();
-        }
-
-        /*public static void AddHiddenChat(string chatId, string additionalUsername)
-        {
-            var appSettings = ConfigurationManager.AppSettings;
-            string hiddenChats = appSettings["hiddenChats"];
-
-            if (string.IsNullOrEmpty(hiddenChats))
-            {
-                // Если строка пустая, то создаем новую строку с chatId
-                appSettings["hiddenChats"] = chatId;
-            }
-            else
-            {
-                // Иначе добавляем chatId к существующей строке через запятую
-                appSettings["hiddenChats"] = $"{hiddenChats},{chatId}";
-            }
-
-            // Сохраняем изменения в конфигурационном файле
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            config.AppSettings.Settings["hiddenChats"].Value = appSettings["hiddenChats"];
-            config.Save(ConfigurationSaveMode.Modified);
-        }*/
-
-        public static void AddHiddenChat(string chatId)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-
-                using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users SET hiddenChats = array_append(hiddenChats, @chatId) WHERE unique_id = @uniqueId", conn))
-                {
-                    cmd.Parameters.AddWithValue("chatId", NpgsqlTypes.NpgsqlDbType.Text, chatId);
-                    cmd.Parameters.AddWithValue("uniqueId", user.UniqueId);
-                    cmd.ExecuteNonQuery();
-                }
-            }
-        }
-
-        public static List<string> GetHiddenChats()
-        {
-            List<string> chats = new List<string>();
-            using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
-            {
-                connection.Open();
-                using (NpgsqlCommand command = new NpgsqlCommand("SELECT hiddenchats FROM users WHERE unique_id = @unique_id", connection))
-                {
-                    command.Parameters.AddWithValue("unique_id", user.UniqueId);
-                    using (NpgsqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            if (!reader.IsDBNull(0))
-                            {
-                                string[] chatIds = (string[])reader["hiddenchats"];
-                                chats.AddRange(chatIds);
-                            }
-                        }
-                    }
-                }
-            }
-            return chats;
+            GlobalData.timer = new Timer();
+            GlobalData.timer.Tick += (sender, e) => timer_Tick(sender, e, chatId);
+            GlobalData.timer.Interval = 1000; // 1 секунду
+            GlobalData.timer.Start();
         }
 
         private void status_Tick(object sender, EventArgs e, string additionalUniqueId, System.Windows.Forms.Label statusLabel)
         {
-            bool status = GetUserOnlineStatus(additionalUniqueId);
+            bool status = UserManager.GetUserOnlineStatus(additionalUniqueId);
 
-            if(status == globalStatusAdditionalUser)
+            if(status == GlobalData.globalStatusAdditionalUser)
             {
                 return;
             }
-            globalStatusAdditionalUser = status;
+            GlobalData.globalStatusAdditionalUser = status;
 
             if (status)
             {
@@ -605,10 +471,9 @@ namespace messenger
             }
         }
 
-
         private void timer_Tick(object sender, EventArgs e, string chatId)
         {
-            Message[] messages = GetAllMessages(chatId);
+            MessageManager.Message[] messages = MessageManager.GetAllMessages(chatId);
             
             int lastMessageIndex = messages.Length - 1;
 
@@ -618,7 +483,7 @@ namespace messenger
                 panel5.Controls.Clear();
             }
            
-            if(messages.Length == globalMessages.Length) { 
+            if(messages.Length == GlobalData.globalMessages.Length) { 
                 if(messages.Length == 0)
                 {
                     OutChatIsEmpty(messages);
@@ -635,7 +500,7 @@ namespace messenger
                 bool equalText = true;
                 for(int i = 0; i < messages.Length; i++)
                 {
-                    if (messages[i].Text == globalMessages[i].Text)
+                    if (messages[i].Text == GlobalData.globalMessages[i].Text)
                     {
 
                     } else
@@ -646,20 +511,20 @@ namespace messenger
 
                 if(equalText == false)
                 {
-                    globalMessages = messages;
+                    GlobalData.globalMessages = messages;
                     panel5.Controls.Clear();
-                    foreach (Message message in messages)
+                    foreach (MessageManager.Message message in messages)
                     {
                         CreateWidgetMessage(message);
                     }
                 }
 
             } else {
-                if(messages.Length > globalMessages.Length)
+                if(messages.Length > GlobalData.globalMessages.Length)
                 {
-                    globalMessages = messages;
+                    GlobalData.globalMessages = messages;
                     //panel5.Controls.Clear();
-                    foreach (Message message in messages)
+                    foreach (MessageManager.Message message in messages)
                     {
                         if (Array.IndexOf(messages, message) == lastMessageIndex)
                         {
@@ -670,86 +535,14 @@ namespace messenger
                     }
                 } else
                 {
-                    globalMessages = messages;
+                    GlobalData.globalMessages = messages;
                     panel5.Controls.Clear();
-                    foreach (Message message in messages)
+                    foreach (MessageManager.Message message in messages)
                     {
                         CreateWidgetMessage(message);
                     }
                 }
 
-            }
-        }
-        public void SetUserOnlineStatus(string userUniqueId, bool isOnline)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-
-                using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users_status SET isOnline = @isOnline WHERE user_unique_id = @userUniqueId", conn))
-                {
-                    cmd.Parameters.AddWithValue("isOnline", isOnline);
-                    cmd.Parameters.AddWithValue("userUniqueId", userUniqueId);
-                    cmd.ExecuteNonQuery();
-                }
-            }
-        }
-        public bool GetUserOnlineStatus(string userUniqueId)
-        {
-            bool isOnline = false;
-
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-
-                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT isOnline FROM users_status WHERE user_unique_id = @userUniqueId", conn))
-                {
-                    cmd.Parameters.AddWithValue("userUniqueId", userUniqueId);
-
-                    var result = cmd.ExecuteScalar();
-                    if (result != null && result != DBNull.Value)
-                    {
-                        isOnline = (bool)result;
-                    }
-                }
-            }
-
-            return isOnline;
-        }
-
-
-
-        public static async Task<DateTime> GetNetworkTime()
-        {
-            // Настройка NTP-сервера
-            string ntpServer = "pool.ntp.org";
-            int ntpPort = 123;
-
-            // Создание сокета
-            using (var ntpSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp))
-            {
-                // Установка таймаута в 5 секунд
-                ntpSocket.ReceiveTimeout = 5000;
-
-                // Получение адреса NTP-сервера
-                var addresses = await Dns.GetHostAddressesAsync(ntpServer);
-
-                // Отправка запроса на NTP-сервер
-                var ntpData = new byte[48];
-                ntpData[0] = 0x1B;
-                var time = await Task.Run(() =>
-                {
-                    ntpSocket.SendTo(ntpData, new IPEndPoint(addresses[0], ntpPort));
-                    ntpSocket.Receive(ntpData);
-                    var intpart = (ulong)ntpData[40] << 24 | (ulong)ntpData[41] << 16 | (ulong)ntpData[42] << 8 | ntpData[43];
-                    var fractpart = (ulong)ntpData[44] << 24 | (ulong)ntpData[45] << 16 | (ulong)ntpData[46] << 8 | ntpData[47];
-                    var milliseconds = (intpart * 1000) + ((fractpart * 1000) / 0x100000000L);
-                    return milliseconds;
-                });
-
-                // Конвертация времени из NTP в DateTime
-                var dateTime = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(time);
-                return dateTime.ToLocalTime();
             }
         }
 
@@ -762,53 +555,12 @@ namespace messenger
             string message = messageTextBox.Text;
             if(message.Length > 0)
             {
-                await CreateMessage(message, reciever_unique_id, chatId);
+                await MessageManager.CreateMessage(message, reciever_unique_id, chatId);
                 messageTextBox.Text = "";
             }
         }
 
-        private static async Task CreateMessage(string message, string reciever_unique_id, string chatId)
-        {
-            Message newMessage = new Message();
-            newMessage.Text = message;
-            var networkTime = await GetNetworkTime();
-
-            newMessage.TimeSent = networkTime;
-            //newMessage.TimeSent = DateTime.Now;
-            newMessage.SenderId = user.UniqueId;
-            newMessage.ReceiverId = reciever_unique_id;
-            newMessage.MessageChatId = chatId;
-            newMessage.MessageUniqueId = Guid.NewGuid().ToString();
-
-
-            newMessage.SendNewMessage(chatId, newMessage);
-            //CreateWidgetMessage(newMessage);
-            //MessageBox.Show("Сообщение отправлено!");
-        }
-
-        public static Message[] GetAllMessages(string chatId)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT array_to_json(messages) FROM chats_messages WHERE chat_unique_id = @chatId", conn))
-                {
-                    cmd.Parameters.AddWithValue("chatId", chatId);
-                    string messagesJson = (string)cmd.ExecuteScalar();
-                    if(messagesJson != null)
-                    {
-                        Message[] messages = JsonConvert.DeserializeObject<Message[]>(messagesJson);
-                        return messages;
-                    } else
-                    {
-                        return new Message[0];
-                    }
-
-                }
-            }
-        }
-
-        public void CreateWidgetMessage(Message newMessage)
+        public void CreateWidgetMessage(MessageManager.Message newMessage)
         {
             string messageText = newMessage.Text;
             string messageSendDate = newMessage.TimeSent.ToString();
@@ -817,7 +569,7 @@ namespace messenger
 
             bool isSenderMainUser = false;
 
-            if (senderId == user.UniqueId)
+            if (senderId == GlobalData.user.UniqueId)
             {
                 isSenderMainUser = true;
             } else
@@ -910,33 +662,28 @@ namespace messenger
 
         public void DeleteMessageMenuClick(string MessageUniqueId)
         {
-            DeleteMessage(currentOpenChatId, MessageUniqueId);
+            MessageManager.DeleteMessage(GlobalData.currentOpenChatId, MessageUniqueId);
             panel5.Controls.Clear();
 
-            Message[] messages = GetAllMessages(currentOpenChatId);
-            globalMessages = messages;
+            MessageManager.Message[] messages = MessageManager.GetAllMessages(GlobalData.currentOpenChatId);
+            GlobalData.globalMessages = messages;
             panel5.Controls.Clear();
-            foreach (Message message1 in messages)
+            foreach (MessageManager.Message message1 in messages)
             {
                 CreateWidgetMessage(message1);
             }
         }
-        public void ChangeMessageMenuClick(Message message)
+        public void ChangeMessageMenuClick(MessageManager.Message message)
         {
             EditMessageMenuClick(message);
         }
 
         public void CopyMessageMenuClick(string message)
         {
-            CopyToClipboard(message);
+            Utils.CopyToClipboard(message);
         }
 
-        public static void CopyToClipboard(string text)
-        {
-            Clipboard.SetText(text);
-        }
-
-        private void EditMessageMenuClick(Message message)
+        private void EditMessageMenuClick(MessageManager.Message message)
         {
             // Создаем новое всплывающее окно
             Form popupForm = new Form();
@@ -1003,70 +750,20 @@ namespace messenger
                 }
                 // Изменяем текст сообщения и сохраняем изменения в базе данных
                 message.Text = textBox.Text;
-                UpdateMessageText(currentOpenChatId, message.MessageUniqueId, message.Text);
+                MessageManager.UpdateMessageText(GlobalData.currentOpenChatId, message.MessageUniqueId, message.Text);
 
                 panel5.Controls.Clear();
 
-                Message[] messages = GetAllMessages(currentOpenChatId);
-                globalMessages = messages;
-                foreach (Message message1 in messages)
+                MessageManager.Message[] messages = MessageManager.GetAllMessages(GlobalData.currentOpenChatId);
+                GlobalData.globalMessages = messages;
+                foreach (MessageManager.Message message1 in messages)
                 {
                     CreateWidgetMessage(message1);
                 }
             }
         }
 
-        public string GetUserIdChat(string chat_unique_id)
-        {
-            string user1_id = "";
-            string user2_id = "";
-            NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-            connection.Open();
-            using (var command = new NpgsqlCommand($"SELECT user1_id, user2_id FROM chats WHERE chat_unique_id='{chat_unique_id}'", connection))
-            {
-                using (var reader = command.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        user1_id = reader.GetString(0);
-                        user2_id = reader.GetString(1);
-                    }
-                }
-            }
-            if(user1_id == user.UniqueId)
-            {
-                return user2_id;
-            }
-            return user1_id; ;
-            
-        }
-
-        public static List<string> GetAllChatsIds()
-        {
-            List<string> chats = new List<string>();
-            using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
-            {
-                connection.Open();
-                using (NpgsqlCommand command = new NpgsqlCommand("SELECT chats FROM users WHERE unique_id = @unique_id", connection))
-                {
-                    command.Parameters.AddWithValue("unique_id", user.UniqueId);
-                    using (NpgsqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            if (!reader.IsDBNull(0))
-                            {
-                                string[] chatIds = (string[])reader["chats"];
-                                chats.AddRange(chatIds);
-                            }
-                        }
-                    }
-                }
-            }
-            return chats;
-        }
-
-        public void DisplayUserData(User user)
+        public void DisplayUserData(UserManager.User user)
         {
             // отображаем данные пользователя на форме в табе чат
             label1.Text = user.Username + "(ВЫ)";
@@ -1080,13 +777,13 @@ namespace messenger
                 label22.Text = user.Age.ToString();
             }
             label23.Text = user.Email;
-            SetImageFromBytes(user.Photo, pictureBox2);
+            ElementHelper.SetImageFromBytes(user.Photo, pictureBox2);
             // отображаем данные пользователя в настройках
             label28.Text = user.Username;
             textBox4.Text = user.Email;
             numericUpDown1.Value = user.Age;
             FillPasswordTextBoxLengthSymbols();
-            SetImageFromBytes(user.Photo, pictureBox7);
+            ElementHelper.SetImageFromBytes(user.Photo, pictureBox7);
             label31.Text += user.RegistrationDate.ToString();
 
             //
@@ -1103,409 +800,8 @@ namespace messenger
 
         private void FillPasswordTextBoxLengthSymbols()
         {
-            int passwordLength = user.GetPasswordLengthFromDatabase();
+            int passwordLength = GlobalData.user.GetPasswordLengthFromDatabase();
             textBox5.Text = new String('*', passwordLength);
-        }
-
-        private void SetImageFromBytes(byte[] imageBytes, PictureBox pictureBox)
-        {
-            using (MemoryStream memoryStream = new MemoryStream(imageBytes))
-            {
-                Image image = Image.FromStream(memoryStream);
-                pictureBox.Image = image;
-            }
-        }
-
-        public class Chat
-        {
-            public string Chat_Unique_Id { get; set; }
-            public string User1_Id { get; set; }
-            public string User2_Id { get; set; }
-            public List<Message> Messages { get; set; }
-
-            public string GenerateChatId()
-            {
-                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-                connection.Open();
-                // Генерируем новый уникальный идентификатор
-                string newUserId = Guid.NewGuid().ToString();
-
-                // Проверяем, что пользователь с таким id еще не существует
-                using (var command = new NpgsqlCommand($"SELECT COUNT(*) FROM chats WHERE chat_unique_id='{newUserId}'", connection))
-                {
-                    int count = Convert.ToInt32(command.ExecuteScalar());
-                    while (count > 0)
-                    {
-                        newUserId = Guid.NewGuid().ToString();
-                        command.CommandText = $"SELECT COUNT(*) FROM users WHERE chat_unique_id='{newUserId}'";
-                        count = Convert.ToInt32(command.ExecuteScalar());
-                    }
-                }
-                return newUserId;
-            }
-
-            public void AddChatToDatabase()
-            {
-                using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (NpgsqlCommand command = new NpgsqlCommand())
-                    {
-                        command.Connection = connection;
-                        command.CommandText = "INSERT INTO chats(chat_unique_id, user1_id, user2_id) VALUES (@chat_unique_id, @user1_id, @user2_id)";
-                        command.Parameters.AddWithValue("chat_unique_id", this.Chat_Unique_Id);
-                        command.Parameters.AddWithValue("user1_id", this.User1_Id);
-                        command.Parameters.AddWithValue("user2_id", this.User2_Id);
-                        command.ExecuteNonQuery();
-                    }
-                }
-
-                using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (NpgsqlCommand command = new NpgsqlCommand())
-                    {
-                        command.Connection = connection;
-                        command.CommandText = "INSERT INTO chats_messages(chat_unique_id) VALUES (@chat_unique_id)";
-                        command.Parameters.AddWithValue("chat_unique_id", this.Chat_Unique_Id);
-                        command.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
-
-        public void DeleteChatDialog(string chatId)
-        {
-            DialogResult result = MessageBox.Show("Вы действительно хотите удалить чат с этим пользователем? Будьте осторожны вы не сможете его восстановить!", "Вы действительно хотите удалить чат?", MessageBoxButtons.OKCancel);
-            if (result == DialogResult.OK)
-            {
-                DeleteChat(chatId, user.UniqueId);
-                Application.Restart();
-            }
-            else if (result == DialogResult.Cancel)
-            {
-            }
-        }
-
-        public static void DeleteChat(string chatId, string userUniqueId)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-                // Удаляем строку из таблицы chats
-                using (NpgsqlCommand cmd = new NpgsqlCommand("DELETE FROM chats WHERE chat_unique_id = @chatId", conn))
-                {
-                    cmd.Parameters.AddWithValue("chatId", chatId);
-                    cmd.ExecuteNonQuery();
-                }
-                // Удаляем строки из таблицы chats_messages
-                using (NpgsqlCommand cmd = new NpgsqlCommand("DELETE FROM chats_messages WHERE chat_unique_id = @chatId", conn))
-                {
-                    cmd.Parameters.AddWithValue("chatId", chatId);
-                    cmd.ExecuteNonQuery();
-                }
-                // Получаем данные пользователя из таблицы users
-                User user = new User();
-                user.LoadFromDatabase(userUniqueId);
-                // Удаляем chatId из массива chats в записи пользователя
-                List<string> chatsIds = GetAllChatsIds();
-                if (chatsIds.Contains(chatId))
-                {
-                    chatsIds.Remove(chatId);
-                    globalChats.Remove(chatId);
-                    globalMessages = null;
-                    currentOpenChatId = "";
-                    using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users SET chats = @chats WHERE unique_id = @userUniqueId", conn))
-                    {
-                        cmd.Parameters.AddWithValue("chats", chatsIds.ToArray());
-                        cmd.Parameters.AddWithValue("userUniqueId", userUniqueId);
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
-
-        public class Chats
-        {
-            private List<Chat> _chats;
-
-            public Chats()
-            {
-                _chats = new List<Chat>();
-            }
-
-            public void Add(Chat chat)
-            {
-                _chats.Add(chat);
-            }
-
-            public void Remove(Chat chat)
-            {
-                _chats.Remove(chat);
-            }
-
-            public Chat GetById(string id)
-            {
-                return _chats.FirstOrDefault(c => c.Chat_Unique_Id == id);
-            }
-
-            public IEnumerable<Chat> GetAll()
-            {
-                return _chats;
-            }
-        }
-        public class Message
-        {
-            public string MessageChatId;
-            public string MessageUniqueId { get; set; }
-            public string SenderId { get; set; }
-            public string ReceiverId { get; set; }
-            public string Text { get; set; }
-            public DateTime TimeSent { get; set; }
-
-            public void SendNewMessage(string chatId, Message newMessage)
-            {
-                using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-                {
-                    conn.Open();
-                    using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE chats_messages SET messages = array_append(messages, @message) WHERE chat_unique_id = @chatId", conn))
-                    {
-                        cmd.Parameters.AddWithValue("message", NpgsqlTypes.NpgsqlDbType.Jsonb, JsonConvert.SerializeObject(newMessage, Newtonsoft.Json.Formatting.None));
-                        cmd.Parameters.AddWithValue("chatId", chatId);
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
-
-        public void DownloadChooseFolder(string chatId)
-        {
-            var folderDialog = new FolderBrowserDialog();
-            if (folderDialog.ShowDialog() == DialogResult.OK)
-            {
-                DownloadChatMessages(chatId, folderDialog.SelectedPath + "\\messages-" + chatId.Substring(0, 6) + ".txt");
-            }
-        }
-
-        public static void DownloadChatMessages(string chatId, string filePath)
-        {
-            // Получаем все сообщения чата
-            Message[] messages = GetAllMessages(chatId);
-
-            // Создаем поток для записи в файл
-            using (StreamWriter writer = new StreamWriter(filePath))
-            {
-                // Проходимся по всем сообщениям чата
-                foreach (Message message in messages)
-                {
-                    // Загружаем данные об отправителе
-                    User sender = new User();
-                    sender.LoadFromDatabase(message.SenderId);
-
-                    // Загружаем данные о получателе
-                    User receiver = new User();
-                    receiver.LoadFromDatabase(message.ReceiverId);
-
-                    // Записываем в файл информацию об отправителе, сообщении и времени отправки
-                    writer.WriteLine($"{sender.Username} {message.TimeSent}");
-                    writer.WriteLine(message.Text);
-                    writer.WriteLine();
-
-                    // Делаем то же самое для получателя
-                    /*writer.WriteLine($"{receiver.Username} {message.TimeSent}");
-                    writer.WriteLine(message.Text);
-                    writer.WriteLine();*/
-                }
-            }
-        }
-
-        public void DeleteMessage(string chatId, string messageUniqueId)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-
-                // Получаем текущий список сообщений
-                Message[] messages = GetAllMessages(chatId);
-
-                // Ищем нужное сообщение и удаляем его из списка
-                var messageToRemove = messages.FirstOrDefault(m => m.MessageUniqueId == messageUniqueId);
-                if (messageToRemove != null)
-                {
-                    messages = messages.Where(m => m.MessageUniqueId != messageUniqueId).ToArray();
-
-                    // Сохраняем изменения в базе данных
-                    using (NpgsqlCommand updateCmd = new NpgsqlCommand("UPDATE chats_messages SET messages = @messages WHERE chat_unique_id = @chatId", conn))
-                    {
-                        updateCmd.Parameters.AddWithValue("messages", NpgsqlTypes.NpgsqlDbType.Jsonb | NpgsqlTypes.NpgsqlDbType.Array, messages);
-                        //updateCmd.Parameters.AddWithValue("chatId", chatId);
-                        updateCmd.Parameters.Add("chatId", NpgsqlDbType.Text).Value = chatId;
-                        updateCmd.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
-
-        async public void UpdateMessageText(string chatId, string messageUniqueId, string newText)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-
-                // Получаем текущий список сообщений
-                Message[] messages = GetAllMessages(chatId);
-
-                // Находим нужное сообщение и обновляем его текст
-                var messageToUpdate = messages.FirstOrDefault(m => m.MessageUniqueId == messageUniqueId);
-                if (messageToUpdate != null)
-                {
-                    messageToUpdate.Text = newText;
-                    messageToUpdate.TimeSent = await GetNetworkTime();
-
-                    // Сохраняем изменения в базе данных
-                    using (NpgsqlCommand updateCmd = new NpgsqlCommand("UPDATE chats_messages SET messages = @messages WHERE chat_unique_id = @chatId", conn))
-                    {
-                        updateCmd.Parameters.AddWithValue("messages", NpgsqlTypes.NpgsqlDbType.Jsonb | NpgsqlTypes.NpgsqlDbType.Array, messages);
-                        updateCmd.Parameters.Add("chatId", NpgsqlDbType.Text).Value = chatId;
-                        updateCmd.ExecuteNonQuery();
-                    }
-                }
-            }
-        }
-
-
-
-        public class User
-        {
-            public string Username { get; set; }
-            public int Age { get; set; }
-            public string Email { get; set; }
-            public byte[] Photo { get; set; }
-            public string UniqueId { get; set; }
-            public DateTime RegistrationDate { get; set; }
-
-            public void LoadFromDatabase(string uniqueId)
-            {
-                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-                connection.Open();
-                using (var command = new NpgsqlCommand($"SELECT username, age, email, photo, unique_id, registration_date FROM users WHERE unique_id='{uniqueId}'", connection))
-                {
-                    using (var reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            this.Username = reader.GetString(0);
-                            this.Age = reader.GetInt32(1);
-                            this.Email = reader.GetString(2);
-                            this.Photo = (byte[])reader["photo"];
-                            this.UniqueId = reader.GetString(4);
-                            this.RegistrationDate = reader.GetDateTime(5);
-                        } else
-                        {
-                            this.Username = "(Аккаунт удален)";
-                            this.Age = 0; 
-                            this.Email = null;
-                            this.Photo = null;
-                            this.UniqueId = null;
-                            this.RegistrationDate = DateTime.MinValue;
-                        }
-                    }
-                }
-            }
-
-            public bool DeleteUser()
-            {
-                using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (NpgsqlCommand command = new NpgsqlCommand($"DELETE FROM users WHERE unique_id = '{this.UniqueId}'", connection))
-                    {
-                        int rowsAffected = command.ExecuteNonQuery();
-                        if (rowsAffected > 0)
-                        {
-                            return true;
-                        }
-                    }
-                }
-                return false;
-            }
-
-            public void ChangePhoto(byte[] newPhoto)
-            {
-                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-                connection.Open();
-
-                using (var command = new NpgsqlCommand($"UPDATE users SET photo=@photo WHERE unique_id='{this.UniqueId}'", connection))
-                {
-                    command.Parameters.AddWithValue("@photo", newPhoto);
-                    command.ExecuteNonQuery();
-                }
-
-                this.Photo = newPhoto;
-            }
-
-            public void ChangePassword(string newPassword)
-            {
-                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-                connection.Open();
-
-                using (var command = new NpgsqlCommand($"UPDATE users SET password='{newPassword}' WHERE unique_id='{this.UniqueId}'", connection))
-                {
-                    command.ExecuteNonQuery();
-                }
-            }
-
-            public void ChangeAge(int newAge)
-            {
-                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-                connection.Open();
-
-                using (var command = new NpgsqlCommand($"UPDATE users SET age='{newAge}' WHERE unique_id='{this.UniqueId}'", connection))
-                {
-                    command.ExecuteNonQuery();
-                }
-                this.Age = newAge;
-            }
-
-            public void ChangeEmail(string newEmail)
-            {
-                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-                connection.Open();
-
-                using (var command = new NpgsqlCommand($"UPDATE users SET email='{newEmail}' WHERE unique_id='{this.UniqueId}'", connection))
-                {
-                    command.ExecuteNonQuery();
-                }
-
-                this.Email = newEmail;
-            }
-
-            public bool IsEmailExists(string email)
-            {
-                int count = 0;
-                NpgsqlConnection connection = new NpgsqlConnection(connectionString);
-                connection.Open();
-                using (var command = new NpgsqlCommand($"SELECT COUNT(*) FROM users WHERE email='{email}'", connection))
-                {
-                    object result = command.ExecuteScalar();
-                    count = Convert.ToInt32(result);
-                }
-                return count > 0 ? true : false;
-            }
-
-            public int GetPasswordLengthFromDatabase()
-            {
-                int passwordLength = 0;
-                using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
-                {
-                    connection.Open();
-                    using (NpgsqlCommand command = new NpgsqlCommand($"SELECT length(password) FROM users WHERE unique_id='{this.UniqueId}'", connection))
-                    {
-                        passwordLength = (int)command.ExecuteScalar();
-                    }
-                }
-                return passwordLength;
-            }
         }
 
         public class Notification
@@ -1514,7 +810,7 @@ namespace messenger
             private System.Windows.Forms.Label label;
             //private NotificationType _type;
 
-            public Notification(string text, int duration, Control parentControl, NotificationType type, Point location)
+            public Notification(string text, int duration, Control parentControl, Enums.NotificationType type, Point location)
             {
                 // Создаем новую метку с текстом и добавляем на форму
                 label = new System.Windows.Forms.Label();
@@ -1528,16 +824,16 @@ namespace messenger
                 label.Location = location;
                 switch (type)
                 {
-                    case NotificationType.Error:
+                    case Enums.NotificationType.Error:
                         label.ForeColor = Color.White;
                         label.BackColor = Color.Red;
                         label.BorderStyle = BorderStyle.Fixed3D;
                         break;
-                    case NotificationType.Warning:
+                    case Enums.NotificationType.Warning:
                         label.ForeColor = Color.Black;
                         label.BackColor = Color.Yellow;
                         break;
-                    case NotificationType.Info:
+                    case Enums.NotificationType.Info:
                         label.ForeColor = Color.Black;
                         label.BackColor = Color.LightGray;
                         break;
@@ -1570,37 +866,14 @@ namespace messenger
             }
         }
 
-        public enum NotificationType
-        {
-            Error,
-            Warning,
-            Info
-        }
-
-        public enum ChangeDataUserModalType
-        {
-            Email,
-            Age,
-            Password
-        }
-
         private void button1_Click(object sender, EventArgs e)
         {
-            ExitFromApp();
-        }
-
-        private static void ExitFromApp()
-        {
-            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            config.AppSettings.Settings["IsRegistered"].Value = "false";
-            config.AppSettings.Settings["UserId"].Value = "";
-            config.Save(ConfigurationSaveMode.Modified);
-            Application.Restart();
+            Utils.ExitFromApp();
         }
 
         async public void create_chat_with_user(string unique_id_receiver)
         {
-            if(user.UniqueId == unique_id_receiver)
+            if(GlobalData.user.UniqueId == unique_id_receiver)
             {
                 MessageBox.Show("Вы не можете написать самому себе!");
                 return;
@@ -1610,32 +883,32 @@ namespace messenger
             textBox3.Clear();
 
             //Проверка существует ли уже чат между пользователями
-            if(IsChatIdInArray(user.UniqueId, unique_id_receiver))
+            if(ChatManager.IsChatIdInArray(GlobalData.user.UniqueId, unique_id_receiver))
             {
-                globalAdditionalUser.LoadFromDatabase(unique_id_receiver);
-                ClickToChatWidget(globalAdditionalUser, GetChatId(user.UniqueId, unique_id_receiver));
+                GlobalData.globalAdditionalUser.LoadFromDatabase(unique_id_receiver);
+                ClickToChatWidget(GlobalData.globalAdditionalUser, ChatManager.GetChatId(GlobalData.user.UniqueId, unique_id_receiver));
                 tabControl1.SelectedTab = tabControl1.TabPages[0];
                 return;
             }
             //Создаем обьект класса чата
-            Chat newChat = new Chat();
+            ChatManager.Chat newChat = new ChatManager.Chat();
             newChat.Chat_Unique_Id = newChat.GenerateChatId();
-            newChat.User1_Id = user.UniqueId;
+            newChat.User1_Id = GlobalData.user.UniqueId;
             newChat.User2_Id = unique_id_receiver;
 
-            chats.Add(newChat);
+            GlobalData.chats.Add(newChat);
             //Записываем в базу данных
             newChat.AddChatToDatabase();
             //Добавляем chat_unique_id в поле chats[] в таблице users
 
-            AddChatUniqueIdToUserArray(newChat, user.UniqueId);
-            AddChatUniqueIdToUserArray(newChat, unique_id_receiver);
+            ChatManager.AddChatUniqueIdToUserArray(newChat, GlobalData.user.UniqueId);
+            ChatManager.AddChatUniqueIdToUserArray(newChat, unique_id_receiver);
 
-            AddUserIdToArrayChatsWithUsers(user.UniqueId, unique_id_receiver);
-            AddUserIdToArrayChatsWithUsers(unique_id_receiver, user.UniqueId);
+            UserManager.AddUserIdToArrayChatsWithUsers(GlobalData.user.UniqueId, unique_id_receiver);
+            UserManager.AddUserIdToArrayChatsWithUsers(unique_id_receiver, GlobalData.user.UniqueId);
 
-            string messageCreate = "(" + user.Username + " создал чат)";
-            await CreateMessage(messageCreate, unique_id_receiver, newChat.Chat_Unique_Id);
+            string messageCreate = "(" + GlobalData.user.Username + " создал чат)";
+            await MessageManager.CreateMessage(messageCreate, unique_id_receiver, newChat.Chat_Unique_Id);
 
             //MessageBox.Show("Чат создан!");
             
@@ -1644,85 +917,16 @@ namespace messenger
             // Переключаемся в меню чатов
             tabControl1.SelectedTab = tabControl1.TabPages[0];
 
-            globalAdditionalUser.LoadFromDatabase(unique_id_receiver);
-            ClickToChatWidget(globalAdditionalUser, newChat.Chat_Unique_Id);
+            GlobalData.globalAdditionalUser.LoadFromDatabase(unique_id_receiver);
+            ClickToChatWidget(GlobalData.globalAdditionalUser, newChat.Chat_Unique_Id);
 
-        }
-
-
-        public bool IsChatIdInArray(string whereUserId, string whatUserId)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT array_position(chats_with_users_id, @what_user_id) FROM users WHERE unique_id = @where_user_id", conn))
-                {
-                    cmd.Parameters.AddWithValue("what_user_id", whatUserId);
-                    cmd.Parameters.AddWithValue("where_user_id", whereUserId);
-                    var result = cmd.ExecuteScalar();
-                    if (Convert.IsDBNull(result))
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        return Convert.ToInt32(result) > 0;
-                    }
-                }
-            }
-        }
-
-        public string GetChatId(string user1Id, string user2Id)
-        {
-            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
-            {
-                conn.Open();
-                using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT chat_unique_id FROM chats WHERE (user1_id = @user1_id AND user2_id = @user2_id) OR (user1_id = @user2_id AND user2_id = @user1_id)", conn))
-                {
-                    cmd.Parameters.AddWithValue("user1_id", user1Id);
-                    cmd.Parameters.AddWithValue("user2_id", user2Id);
-                    var result = cmd.ExecuteScalar();
-                    if (Convert.IsDBNull(result))
-                    {
-                        return null;
-                    }
-                    else
-                    {
-                        return result.ToString();
-                    }
-                }
-            }
-        }
-
-        private static void AddUserIdToArrayChatsWithUsers(string where_user_id, string what_user_id)
-        {
-            NpgsqlConnection conn;
-            NpgsqlCommand cmd;
-            conn = new NpgsqlConnection(connectionString);
-            conn.Open();
-            cmd = new NpgsqlCommand("UPDATE users SET chats_with_users_id = array_append(chats_with_users_id, @what_user_id) WHERE unique_id = @where_user_id", conn);
-            cmd.Parameters.AddWithValue("where_user_id", where_user_id);
-            cmd.Parameters.AddWithValue("what_user_id", what_user_id);
-            cmd.ExecuteNonQuery();
-        }
-
-        private static void AddChatUniqueIdToUserArray(Chat newChat, string user_id)
-        {
-            NpgsqlConnection conn;
-            NpgsqlCommand cmd;
-            conn = new NpgsqlConnection(connectionString);
-            conn.Open();
-            cmd = new NpgsqlCommand("UPDATE users SET chats = array_append(chats, @chat_id) WHERE unique_id = @user_id", conn);
-            cmd.Parameters.AddWithValue("chat_id", newChat.Chat_Unique_Id);
-            cmd.Parameters.AddWithValue("user_id", user_id);
-            cmd.ExecuteNonQuery();
         }
 
         public void SearchUsers(string searchText)
         {
             bool foundUsers = false;
             string query = "SELECT username, age, photo, unique_id FROM users WHERE username LIKE @searchText LIMIT 5;";
-            using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
+            using (NpgsqlConnection connection = new NpgsqlConnection(GlobalData.connectionString))
             {
                 connection.Open();
                 using (NpgsqlCommand command = new NpgsqlCommand(query, connection))
@@ -1764,7 +968,7 @@ namespace messenger
                             write_user.Click += (sender, e) => create_chat_with_user(unique_id);
 
                             System.Windows.Forms.Label nameLabel = new System.Windows.Forms.Label();
-                            if(unique_id == user.UniqueId)
+                            if(unique_id == GlobalData.user.UniqueId)
                             {
                                 nameLabel.Text = username + "(ВЫ)";
                             } else
@@ -1808,7 +1012,7 @@ namespace messenger
                         }
                         if (!foundUsers)
                         {
-                            Notification notification = new Notification("Пользователя с таким именем не существует!", 3000, panel9, NotificationType.Warning, new Point(250, 50));
+                            Notification notification = new Notification("Пользователя с таким именем не существует!", 3000, panel9, Enums.NotificationType.Warning, new Point(250, 50));
                         }
                     }
                 }
@@ -1839,33 +1043,24 @@ namespace messenger
 
         private void button6_Click(object sender, EventArgs e)
         {
-            DialogResult result = MessageBox.Show("Вы действительно хотите удалить свой аккаунт? Вы не сможете его восстановить", "Вы действительно хотите удалить свой аккаунт?", MessageBoxButtons.OKCancel);
-            if (result == DialogResult.OK)
-            {
-                user.DeleteUser();
-                ExitFromApp();
-            }
-            else if (result == DialogResult.Cancel)
-            {
-            }
+            UserManager.DeleteAccountUser();
         }
-
         private void button7_Click(object sender, EventArgs e)
         {
-            changeDataUserModal("Введите новую почту", ChangeDataUserModalType.Email, user);
+            changeDataUserModal("Введите новую почту", Enums.ChangeDataUserModalType.Email, GlobalData.user);
         }
         private void button8_Click(object sender, EventArgs e)
         {
-            changeDataUserModal("Введите новый возраст", ChangeDataUserModalType.Age, user);
+            changeDataUserModal("Введите новый возраст", Enums.ChangeDataUserModalType.Age, GlobalData.user);
 
         }
 
         private void button9_Click(object sender, EventArgs e)
         {
-            changeDataUserModal("Введите новый пароль", ChangeDataUserModalType.Password, user);
+            changeDataUserModal("Введите новый пароль", Enums.ChangeDataUserModalType.Password, GlobalData.user);
         }
 
-        private static void changeDataUserModal(string nameForm, ChangeDataUserModalType parametrData, User user)
+        private static void changeDataUserModal(string nameForm, Enums.ChangeDataUserModalType parametrData, UserManager.User user)
         {
             using (var inputBox = new Form())
             {
@@ -1878,7 +1073,7 @@ namespace messenger
 
                 var textBox=new System.Windows.Forms.TextBox();
                 var numericUpDown= new System.Windows.Forms.NumericUpDown();
-                if (parametrData == ChangeDataUserModalType.Email || parametrData == ChangeDataUserModalType.Password) {
+                if (parametrData == Enums.ChangeDataUserModalType.Email || parametrData == Enums.ChangeDataUserModalType.Password) {
                     // создание текстового поля
                     textBox = new System.Windows.Forms.TextBox()
                     {
@@ -1924,10 +1119,10 @@ namespace messenger
                 if (inputBox.ShowDialog() == DialogResult.OK)
                 {
                     switch (parametrData) {
-                        case ChangeDataUserModalType.Email:
+                        case Enums.ChangeDataUserModalType.Email:
                             if (textBox.Text.Length > 0)
                             {
-                                if (Form1.ValidateEmail(textBox.Text))
+                                if (Validator.ValidateEmail(textBox.Text))
                                 {
                                     if (user.IsEmailExists(textBox.Text.ToString())){
                                         MessageBox.Show("Такой адрес электронной почты уже существует!");
@@ -1952,14 +1147,14 @@ namespace messenger
                                 break;
                             }
                             break;
-                        case ChangeDataUserModalType.Password:
+                        case Enums.ChangeDataUserModalType.Password:
                             if(textBox.Text.Length > 0)
                             {
-                                if (Form1.ValidatePassword(textBox.Text))
+                                if (Validator.ValidatePassword(textBox.Text))
                                 {
                                     user.ChangePassword(textBox.Text);
                                     MessageBox.Show("Пароль изменен, войдите в систему с новым паролем!");
-                                    ExitFromApp();
+                                    Utils.ExitFromApp();
                                     break;
                                 } else
                                 {
@@ -1967,8 +1162,8 @@ namespace messenger
                                 }
                             }
                             MessageBox.Show("Поле ввода пустое!"); break;
-                        case ChangeDataUserModalType.Age:
-                            if (Form1.ValidateAge(Convert.ToInt32(numericUpDown.Value)))
+                        case Enums.ChangeDataUserModalType.Age:
+                            if (Validator.ValidateAge(Convert.ToInt32(numericUpDown.Value)))
                             {
                                 user.ChangeAge(Convert.ToInt32(numericUpDown.Value));
                                 MessageBox.Show("Возраст изменен!");
@@ -1985,8 +1180,8 @@ namespace messenger
 
         private void button10_Click(object sender, EventArgs e)
         {
-            Form1.OpenPhotoAndAddPhotoToPictureBox(pictureBox7);
-            user.ChangePhoto(Form1.GetImageBytesFromPictureBox(pictureBox7));
+            ElementHelper.OpenPhotoAndAddPhotoToPictureBox(pictureBox7);
+            GlobalData.user.ChangePhoto(ElementHelper.GetImageBytesFromPictureBox(pictureBox7));
             MessageBox.Show("Фото изменено!");
             Application.Restart();
         }
@@ -2051,7 +1246,7 @@ namespace messenger
 
         private void Form2_FormClosing(object sender, FormClosingEventArgs e)
         {
-            SetUserOnlineStatus(user.UniqueId, false);
+            UserManager.SetUserOnlineStatus(GlobalData.user.UniqueId, false);
         }
     }
 }
