@@ -51,20 +51,27 @@ namespace messenger
         static List<string> globalChats;
         //bool initChats = false;
         bool globalStatusAdditionalUser = false;
-
-
+        //string[] hiddenChats;
+        static List<string> hiddenChats;
 
         public static string currentOpenChatId = "";
         public Form2()
         {
             InitializeComponent();
+
             user = new User(); // создаем экземпляр класса User
             globalAdditionalUser = new User();
             chats = new Chats();
             user.LoadFromDatabase(userId); // вызываем метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
+
+            hiddenChats = GetHiddenChats();
+
             DisplayUserData(user); // отображаем полученные данные на форме
             InitLoadAllChaUser();
             SetUserOnlineStatus(user.UniqueId, true);
+
+            DisplayHiddenChats();
+
 
             if (chatTimer.Enabled)
             {
@@ -77,6 +84,93 @@ namespace messenger
             chatTimer.Start();
         }
 
+        public void DisplayHiddenChats()
+        {
+            if (hiddenChats.Count > 0)
+            {
+                foreach (string hiddenChatId in hiddenChats)
+                {
+                    string additionalUserId = GetUserIdChat(hiddenChatId);
+                    User additionalUser = new User();
+                    additionalUser.LoadFromDatabase(additionalUserId);
+                    CreateHiddenChatWidget(additionalUser, hiddenChatId);
+
+                }
+            }
+            else
+            {
+                System.Windows.Forms.Label notFoundHiddenChats = new System.Windows.Forms.Label();
+                notFoundHiddenChats.Text = "У вас нет скрытых чатов!";
+                notFoundHiddenChats.Font = new Font("Arial", 12, FontStyle.Bold);
+                notFoundHiddenChats.Width = 450;
+                notFoundHiddenChats.Location = new Point(270, 100);
+                panel6.Controls.Add(notFoundHiddenChats);
+            }
+        }
+
+        public void CreateHiddenChatWidget(User additionalUser, string hiddenChatId)
+        {
+            string username = additionalUser.Username;
+            byte[] photo = additionalUser.Photo;
+            string unique_id = additionalUser.UniqueId;
+
+            Panel hiddenChatPanel = new Panel();
+            hiddenChatPanel.BorderStyle = BorderStyle.FixedSingle;
+            hiddenChatPanel.Width = panel6.Width - 10;
+            hiddenChatPanel.Height = 50;
+            hiddenChatPanel.Padding = new Padding(5);
+            hiddenChatPanel.Location = new Point(0, panel9.Controls.Count * hiddenChatPanel.Height);
+
+            PictureBox photoBox = new PictureBox();
+            photoBox.Width = 40;
+            photoBox.Height = 40;
+            photoBox.SizeMode = PictureBoxSizeMode.StretchImage;
+            using (MemoryStream memoryStream = new MemoryStream(photo))
+            {
+                Image image = Image.FromStream(memoryStream);
+                photoBox.Image = image;
+            }
+
+            System.Windows.Forms.Button showChatBtn = new System.Windows.Forms.Button();
+            showChatBtn.Text = "Показать чат";
+            showChatBtn.Click += (sender, e) => RemoveHiddenChat(hiddenChatId);
+
+            System.Windows.Forms.Label nameLabel = new System.Windows.Forms.Label();
+            nameLabel.Text = username;
+            nameLabel.Font = new Font("Arial", 12, FontStyle.Bold);
+            nameLabel.Width = 150;
+            nameLabel.Location = new Point(50, 10);
+
+            hiddenChatPanel.Controls.Add(photoBox);
+            photoBox.Location = new Point(5, 5);
+
+            hiddenChatPanel.Controls.Add(nameLabel);
+            nameLabel.Location = new Point(photoBox.Right + 5, 5);
+
+            hiddenChatPanel.Controls.Add(showChatBtn);
+            showChatBtn.Width = 150;
+            showChatBtn.Height = 30;
+            showChatBtn.Location = new Point(640, 10);
+
+            // Добавляем новый элемент интерфейса на панель результатов поиска
+            panel6.Controls.Add(hiddenChatPanel);
+        }
+
+        public void RemoveHiddenChat(string hiddenChatId)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+
+                using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users SET hiddenChats = array_remove(hiddenChats, @chatId) WHERE unique_id = @uniqueId", conn))
+                {
+                    cmd.Parameters.AddWithValue("chatId", NpgsqlTypes.NpgsqlDbType.Text, hiddenChatId);
+                    cmd.Parameters.AddWithValue("uniqueId", user.UniqueId);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            Application.Restart();
+        }
 
         public void LoadAllChatsUser()
         {
@@ -91,11 +185,15 @@ namespace messenger
             globalChats = chatsIds;
             foreach (string chatId in chatsIds)
             {
-                //panel3.Controls.Clear();
-                string additionalUserId = GetUserIdChat(chatId);
-                User additionalUser = new User();
-                additionalUser.LoadFromDatabase(additionalUserId);
-                CreateNewChatPanel(additionalUser, chatId);
+                bool isChatIdExist = hiddenChats.Contains(chatId);
+                if (!isChatIdExist)
+                {
+                    //panel3.Controls.Clear();
+                    string additionalUserId = GetUserIdChat(chatId);
+                    User additionalUser = new User();
+                    additionalUser.LoadFromDatabase(additionalUserId);
+                    CreateNewChatPanel(additionalUser, chatId);
+                }
             }
         }
 
@@ -104,24 +202,56 @@ namespace messenger
             List<string> chatsIds = GetAllChatsIds();
             chatsIds.Reverse();
             globalChats = chatsIds;
-            if(chatsIds.Count == 0)
+
+            bool equalsHidden = false;
+            int countEqualsHiddenAndChats = 0;
+            
+            foreach (var chatId in chatsIds)
+            {
+                foreach (var hiddenId in hiddenChats)
+                {
+                    if(chatId == hiddenId)
+                    {
+                        countEqualsHiddenAndChats++;
+                    }
+                }
+            }
+            if(countEqualsHiddenAndChats == chatsIds.Count)
+            {
+                equalsHidden = true;
+            }
+
+            if (chatsIds.Count == 0 || equalsHidden)
             {
                 System.Windows.Forms.Label label = new System.Windows.Forms.Label();
-                label.Text = "У вас еще нет чатов!";
-                label.Width = 200;
-                label.Font = new Font("Arial", 12, FontStyle.Bold);
+                if (equalsHidden)
+                {
+                    label.Text = "Не скрытые чаты отсутствуют!";
+                    label.Width = 220;
+                    label.Font = new Font("Arial", 9, FontStyle.Bold);
+                }
+                else
+                {
+                    label.Text = "У вас еще нет чатов!";
+                    label.Width = 200;
+                    label.Font = new Font("Arial", 12, FontStyle.Bold);
+                }
+
                 label.Location = new Point(30, 10);
                 panel3.Controls.Add(label);
                 return;
             }
             foreach (string chatId in chatsIds)
             {
-                //panel3.Controls.Clear();
+                bool isChatIdExist = hiddenChats.Contains(chatId);
+                if (!isChatIdExist)
+                {
                 string additionalUserId = GetUserIdChat(chatId);
                 
                 User additionalUser = new User();
                 additionalUser.LoadFromDatabase(additionalUserId);
                 CreateNewChatPanel(additionalUser, chatId);
+                }
             }
         }
 
@@ -243,6 +373,13 @@ namespace messenger
             downloadChatHistoryBtn.Height = 30;
             downloadChatHistoryBtn.Location = new Point(380, 50);
 
+            System.Windows.Forms.Button hideChatBtn = new System.Windows.Forms.Button();
+            hideChatBtn.Text = "Скрыть чат";
+            hideChatBtn.Click += (sender, e) => HideChat(chatId, additionalUser.Username);
+            hideChatBtn.Width = 210;
+            hideChatBtn.Height = 30;
+            hideChatBtn.Location = new Point(380, 20);
+
             System.Windows.Forms.Button deleteChatBtn = new System.Windows.Forms.Button();
             if (unique_id == null)
             {
@@ -360,6 +497,7 @@ namespace messenger
             panel2.Controls.Clear();
             panel2.Controls.Add(chatPanel);
             panel2.Controls.Add(downloadChatHistoryBtn);
+            panel2.Controls.Add(hideChatBtn);
 
             if(unique_id == null)
             {
@@ -375,6 +513,75 @@ namespace messenger
             timer.Tick += (sender, e) => timer_Tick(sender, e, chatId);
             timer.Interval = 1000; // 1 секунду
             timer.Start();
+        }
+
+        public void HideChat(string chatId, string additionalUsername)
+        {
+            AddHiddenChat(chatId);
+            MessageBox.Show("Чат скрыт!");
+            Application.Restart();
+        }
+
+        /*public static void AddHiddenChat(string chatId, string additionalUsername)
+        {
+            var appSettings = ConfigurationManager.AppSettings;
+            string hiddenChats = appSettings["hiddenChats"];
+
+            if (string.IsNullOrEmpty(hiddenChats))
+            {
+                // Если строка пустая, то создаем новую строку с chatId
+                appSettings["hiddenChats"] = chatId;
+            }
+            else
+            {
+                // Иначе добавляем chatId к существующей строке через запятую
+                appSettings["hiddenChats"] = $"{hiddenChats},{chatId}";
+            }
+
+            // Сохраняем изменения в конфигурационном файле
+            Configuration config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            config.AppSettings.Settings["hiddenChats"].Value = appSettings["hiddenChats"];
+            config.Save(ConfigurationSaveMode.Modified);
+        }*/
+
+        public static void AddHiddenChat(string chatId)
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(connectionString))
+            {
+                conn.Open();
+
+                using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE users SET hiddenChats = array_append(hiddenChats, @chatId) WHERE unique_id = @uniqueId", conn))
+                {
+                    cmd.Parameters.AddWithValue("chatId", NpgsqlTypes.NpgsqlDbType.Text, chatId);
+                    cmd.Parameters.AddWithValue("uniqueId", user.UniqueId);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public static List<string> GetHiddenChats()
+        {
+            List<string> chats = new List<string>();
+            using (NpgsqlConnection connection = new NpgsqlConnection(connectionString))
+            {
+                connection.Open();
+                using (NpgsqlCommand command = new NpgsqlCommand("SELECT hiddenchats FROM users WHERE unique_id = @unique_id", connection))
+                {
+                    command.Parameters.AddWithValue("unique_id", user.UniqueId);
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            if (!reader.IsDBNull(0))
+                            {
+                                string[] chatIds = (string[])reader["hiddenchats"];
+                                chats.AddRange(chatIds);
+                            }
+                        }
+                    }
+                }
+            }
+            return chats;
         }
 
         private void status_Tick(object sender, EventArgs e, string additionalUniqueId, System.Windows.Forms.Label statusLabel)

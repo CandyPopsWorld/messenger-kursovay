@@ -47,6 +47,7 @@
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.label1 = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.label2 = new System.Windows.Forms.Label();
             this.label25 = new System.Windows.Forms.Label();
             this.panel9 = new System.Windows.Forms.Panel();
             this.button4 = new System.Windows.Forms.Button();
@@ -67,13 +68,15 @@
             this.pictureBox7 = new System.Windows.Forms.PictureBox();
             this.label27 = new System.Windows.Forms.Label();
             this.textBox4 = new System.Windows.Forms.TextBox();
+            this.tabPage6 = new System.Windows.Forms.TabPage();
+            this.panel6 = new System.Windows.Forms.Panel();
             this.tabPage5 = new System.Windows.Forms.TabPage();
             this.label33 = new System.Windows.Forms.Label();
             this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.label32 = new System.Windows.Forms.Label();
             this.button6 = new System.Windows.Forms.Button();
             this.label26 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.panel10.SuspendLayout();
@@ -86,6 +89,7 @@
             this.tabPage4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox7)).BeginInit();
+            this.tabPage6.SuspendLayout();
             this.tabPage5.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -288,6 +292,15 @@
             this.tabPage2.Text = "ПОИСК ПОЛЬЗОВАТЕЛЯ";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(357, 18);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(138, 13);
+            this.label2.TabIndex = 4;
+            this.label2.Text = "ПОИСК ПОЛЬЗОВАТЕЛЯ";
+            // 
             // label25
             // 
             this.label25.AutoSize = true;
@@ -338,6 +351,7 @@
             // tabControl2
             // 
             this.tabControl2.Controls.Add(this.tabPage4);
+            this.tabControl2.Controls.Add(this.tabPage6);
             this.tabControl2.Controls.Add(this.tabPage5);
             this.tabControl2.Location = new System.Drawing.Point(16, 57);
             this.tabControl2.Name = "tabControl2";
@@ -488,6 +502,26 @@
             this.textBox4.Size = new System.Drawing.Size(237, 20);
             this.textBox4.TabIndex = 0;
             // 
+            // tabPage6
+            // 
+            this.tabPage6.Controls.Add(this.label3);
+            this.tabPage6.Controls.Add(this.panel6);
+            this.tabPage6.Location = new System.Drawing.Point(4, 22);
+            this.tabPage6.Name = "tabPage6";
+            this.tabPage6.Size = new System.Drawing.Size(889, 354);
+            this.tabPage6.TabIndex = 2;
+            this.tabPage6.Text = "Скрытые чаты";
+            this.tabPage6.UseVisualStyleBackColor = true;
+            // 
+            // panel6
+            // 
+            this.panel6.AutoScroll = true;
+            this.panel6.AutoSize = true;
+            this.panel6.Location = new System.Drawing.Point(25, 27);
+            this.panel6.Name = "panel6";
+            this.panel6.Size = new System.Drawing.Size(820, 314);
+            this.panel6.TabIndex = 0;
+            // 
             // tabPage5
             // 
             this.tabPage5.Controls.Add(this.label33);
@@ -552,14 +586,14 @@
             this.label26.TabIndex = 1;
             this.label26.Text = "НАСТРОЙКИ";
             // 
-            // label2
+            // label3
             // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(357, 18);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(138, 13);
-            this.label2.TabIndex = 4;
-            this.label2.Text = "ПОИСК ПОЛЬЗОВАТЕЛЯ";
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(347, 11);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(97, 13);
+            this.label3.TabIndex = 1;
+            this.label3.Text = "СКРЫТЫЕ ЧАТЫ";
             // 
             // Form2
             // 
@@ -589,6 +623,8 @@
             this.tabPage4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox7)).EndInit();
+            this.tabPage6.ResumeLayout(false);
+            this.tabPage6.PerformLayout();
             this.tabPage5.ResumeLayout(false);
             this.tabPage5.PerformLayout();
             this.ResumeLayout(false);
@@ -642,5 +678,8 @@
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Panel panel5;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TabPage tabPage6;
+        private System.Windows.Forms.Panel panel6;
+        private System.Windows.Forms.Label label3;
     }
 }
