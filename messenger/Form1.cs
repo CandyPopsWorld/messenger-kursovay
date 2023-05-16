@@ -14,6 +14,35 @@ namespace messenger
         {
             InitializeComponent();
         }
+        /*public static void SqlTest()
+        {
+            using (NpgsqlConnection conn = new NpgsqlConnection(GlobalData.connectionString))
+            {
+                conn.Open();
+                using (var cmd = new NpgsqlCommand())
+                {
+                    cmd.Connection = conn;
+                    //cmd.CommandText = "CREATE TABLE users (id SERIAL PRIMARY KEY, username VARCHAR(50), password VARCHAR(50), email VARCHAR(50), age INTEGER, photo BYTEA, unique_id VARCHAR(255), registration_date TIMESTAMP WITHOUT TIME ZONE, chats_with_users_id TEXT[] DEFAULT '{}', chats TEXT[] DEFAULT '{}', hiddenchats TEXT[] DEFAULT '{}')";
+                    //cmd.CommandText = @"CREATE TABLE users_status (
+                    //user_unique_id char(255) PRIMARY KEY,
+                    //isonline boolean
+                    //)";
+                    //cmd.CommandText = @"CREATE TABLE IF NOT EXISTS chats (
+                    //chat_unique_id char(255) PRIMARY KEY,
+                    // user1_id char(255),
+                    // user2_id char(255)
+                    //);";
+                    //cmd.CommandText = @"CREATE TABLE IF NOT EXISTS chats_messages (
+                                   // chat_unique_id character varying(255) NOT NULL,
+	                               // messages JSONB[] DEFAULT ARRAY[]::JSONB[],
+	                             //   CONSTRAINT fk_chat FOREIGN KEY (chat_unique_id) REFERENCES chats(chat_unique_id) ON DELETE CASCADE,
+	                               // PRIMARY KEY(chat_unique_id)
+                               // )";
+                    cmd.ExecuteNonQuery();
+                }
+                conn.Close();
+            }
+        }*/
 
         private void registerBtn_Click(object sender, EventArgs e)
         {

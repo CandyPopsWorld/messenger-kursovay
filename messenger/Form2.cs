@@ -18,9 +18,9 @@ namespace messenger
             GlobalData.user.LoadFromDatabase(GlobalData.userId); // Отображение метод LoadFromDatabase для получения данных из базы данных и заполнения полей класса
             GlobalData.hiddenChats = ChatManager.GetHiddenChats();
 
+            UserManager.SetUserOnlineStatus(GlobalData.user.UniqueId, true);
             DisplayUserData(GlobalData.user); // Отображение полученные данные на форме
             InitLoadAllChaUser();
-            UserManager.SetUserOnlineStatus(GlobalData.user.UniqueId, true);
             DisplayHiddenChats();
 
 
@@ -151,7 +151,7 @@ namespace messenger
                     }
                 }
             }
-            if(countEqualsHiddenAndChats == chatsIds.Count)
+            if(countEqualsHiddenAndChats == chatsIds.Count && chatsIds.Count !=0)
             {
                 equalsHidden = true;
             }
@@ -183,7 +183,7 @@ namespace messenger
                 {
                 string additionalUserId = UserManager.GetUserIdChat(chatId);
 
-                    UserManager.User additionalUser = new UserManager.User();
+                UserManager.User additionalUser = new UserManager.User();
                 additionalUser.LoadFromDatabase(additionalUserId);
                 CreateNewChatPanel(additionalUser, chatId);
                 }
@@ -213,7 +213,7 @@ namespace messenger
 
             PictureBox photoBox = new PictureBox();
             
-            if(photo != null)
+            if(unique_id != null)
             {
                 photoBox.Width = 44;
                 photoBox.Height = 52;
@@ -316,7 +316,7 @@ namespace messenger
             hideChatBtn.Location = new Point(380, 20);
 
             System.Windows.Forms.Button deleteChatBtn = new System.Windows.Forms.Button();
-            if (unique_id == null)
+            if (unique_id == null || unique_id.Length == 0 || unique_id == "null")
             {
                 deleteChatBtn.Text = "Удалить чат!";
                 deleteChatBtn.Click += (sender, e) => ChatManager.DeleteChatDialog(chatId);
@@ -432,11 +432,13 @@ namespace messenger
             panel2.Controls.Clear();
             panel2.Controls.Add(chatPanel);
             panel2.Controls.Add(downloadChatHistoryBtn);
-            panel2.Controls.Add(hideChatBtn);
 
-            if(unique_id == null)
+            if(unique_id == null || unique_id.Length == 0 || unique_id == "null")
             {
                 panel2.Controls.Add(deleteChatBtn);
+            } else
+            {
+                panel2.Controls.Add(hideChatBtn);
             }
 
 

@@ -7,6 +7,7 @@ namespace messenger
 {
     public static class GlobalData
     {
+        //public static string connectionString = AuthenticationManager.GetConnectionString();
         public static string connectionString = ConfigurationManager.AppSettings["connectionString"];
         public static string fromEmail = ConfigurationManager.AppSettings["fromEmail"];
         public static string fromEmailPassword = ConfigurationManager.AppSettings["fromEmailPassword"];
